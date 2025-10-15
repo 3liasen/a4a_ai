@@ -16,11 +16,15 @@
   const bootstrapCss = document.createElement("link");
   bootstrapCss.rel = "stylesheet";
   bootstrapCss.href = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css";
+  bootstrapCss.crossOrigin = "anonymous";
+  bootstrapCss.referrerPolicy = "no-referrer";
   shadow.appendChild(bootstrapCss);
 
   const bootstrapIcons = document.createElement("link");
   bootstrapIcons.rel = "stylesheet";
   bootstrapIcons.href = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css";
+  bootstrapIcons.crossOrigin = "anonymous";
+  bootstrapIcons.referrerPolicy = "no-referrer";
   shadow.appendChild(bootstrapIcons);
 
   const baseStyle = document.createElement("style");
@@ -46,7 +50,7 @@
     "      <a class=\"navbar-brand fw-semibold\" href=\"#\">axs4all Intelligence</a>",
     "      <div class=\"ms-auto d-flex align-items-center gap-3\">",
     "        <span class=\"text-muted small\" id=\"a4a-clock\">--:--</span>",
-    "        <button class=\"btn btn-primary btn-sm\" data-action=\"new-url\">",
+    "        <button class=\"btn btn-primary btn-sm\" data-action=\"new-url\" data-bs-toggle=\"tooltip\" data-bs-title=\"Create a new crawl target\">",
     "          <i class=\"bi bi-plus-lg me-1\"></i>New Target",
     "        </button>",
     "      </div>",
@@ -66,7 +70,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-primary-subtle text-primary fs-5\"><i class=\"bi bi-list-task\"></i></div>",
+    "            <div class=\"icon-circle bg-primary-subtle text-primary fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Total URLs\"><i class=\"bi bi-list-task\"></i></div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">Total URLs</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-total\">0</div>",
@@ -77,7 +81,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-success-subtle text-success fs-5\"><i class=\"bi bi-clock-history\"></i></div>",
+    "            <div class=\"icon-circle bg-success-subtle text-success fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Scheduled URLs\"><i class=\"bi bi-clock-history\"></i></div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">Scheduled</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-scheduled\">0</div>",
@@ -88,7 +92,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-warning-subtle text-warning fs-5\"><i class=\"bi bi-arrow-repeat\"></i></div>",
+    "            <div class=\"icon-circle bg-warning-subtle text-warning fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Most recent update\"><i class=\"bi bi-arrow-repeat\"></i></div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">Last Update</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-updated\">--</div>",
@@ -99,7 +103,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-info-subtle text-info fs-5\"><i class=\"bi bi-robot\"></i></div>",
+    "            <div class=\"icon-circle bg-info-subtle text-info fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Targets with XML snapshots\"><i class=\"bi bi-robot\"></i></div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">AI Ready</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-ai-ready\">0</div>",
@@ -114,7 +118,7 @@
     "              <h2 class=\"h5 mb-1\">Crawl Targets</h2>",
     "              <p class=\"text-muted mb-0\">Monitor cadence, freshness, and recent edits.</p>",
     "            </div>",
-    "            <button class=\"btn btn-outline-primary\" data-action=\"new-url\">",
+    "            <button class=\"btn btn-outline-primary\" data-action=\"new-url\" data-bs-toggle=\"tooltip\" data-bs-title=\"Add a new URL\">",
     "              <i class=\"bi bi-plus-lg me-1\"></i>Add URL",
     "            </button>",
     "          </div>",
@@ -138,7 +142,7 @@
     "              <div class=\"icon-circle bg-primary-subtle text-primary\"><i class=\"bi bi-sparkles\"></i></div>",
     "              <h3 class=\"h5\">No targets yet</h3>",
     "              <p class=\"text-muted\">Add a URL to start orchestrating the AI crawl pipeline.</p>",
-    "              <button class=\"btn btn-primary\" data-action=\"new-url\"><i class=\"bi bi-plus-lg me-1\"></i>Create URL</button>",
+    "              <button class=\"btn btn-primary\" data-action=\"new-url\" data-bs-toggle=\"tooltip\" data-bs-title=\"Create a new crawl target\"><i class=\"bi bi-plus-lg me-1\"></i>Create URL</button>",
     "            </div>",
     "          </div>",
     "        </div>",
@@ -155,8 +159,8 @@
     "            </div>",
     "          </div>",
     "          <div class=\"card-footer d-flex gap-2\">",
-    "            <button class=\"btn btn-outline-primary w-100\" id=\"a4a-detail-edit\" disabled><i class=\"bi bi-pencil-square me-1\"></i>Edit</button>",
-    "            <button class=\"btn btn-outline-secondary\" id=\"a4a-detail-copy\" disabled title=\"Copy URL\"><i class=\"bi bi-clipboard\"></i></button>",
+    "            <button class=\"btn btn-outline-primary w-100\" id=\"a4a-detail-edit\" disabled data-bs-toggle=\"tooltip\" data-bs-title=\"Open in editor\"><i class=\"bi bi-pencil-square me-1\"></i>Edit</button>",
+    "            <button class=\"btn btn-outline-secondary\" id=\"a4a-detail-copy\" disabled title=\"Copy URL\" data-bs-toggle=\"tooltip\" data-bs-title=\"Copy URL\"><i class=\"bi bi-clipboard\"></i></button>",
     "          </div>",
     "        </div>",
     "        <div class=\"card shadow-sm\" id=\"a4a-timeline-card\">",
@@ -287,6 +291,18 @@
     previewContent: app.querySelector('#a4a-preview-content'),
     actionNewButtons: app.querySelectorAll('[data-action="new-url"]')
   };
+
+  let tooltipInstances = [];
+
+  function refreshTooltips() {
+    if (!window.bootstrap || !window.bootstrap.Tooltip) {
+      return;
+    }
+    tooltipInstances.forEach((instance) => instance.dispose());
+    tooltipInstances = Array.from(
+      shadow.querySelectorAll('[data-bs-toggle="tooltip"]')
+    ).map((el) => new window.bootstrap.Tooltip(el, { boundary: shadow.host }));
+  }
 
   function updateClock() {
     if (!els.clock) {
@@ -448,6 +464,7 @@
       if (els.emptyState) {
         els.emptyState.classList.remove('d-none');
       }
+      refreshTooltips();
       return;
     }
     if (els.emptyState) {
@@ -461,9 +478,10 @@
         ? '<span class="badge text-bg-primary">' + escapeHtml(schedule) + '</span>'
         : '<span class="badge text-bg-secondary">Ad hoc</span>';
       const selectedClass = state.selectedId === item.id ? 'table-active' : '';
-      return '<tr class="' + selectedClass + '" data-row-id="' + item.id + '"><td><div class="fw-semibold mb-1 text-break">' + escapeHtml(item.url) + '</div><div class="text-muted small" title="' + escapeHtml(item.description || '') + '">' + (description ? escapeHtml(description) : 'Add some context for this target.') + '</div></td><td>' + badge + '</td><td><div class="small fw-semibold">' + escapeHtml(times.relative) + '</div><div class="text-muted small">' + escapeHtml(times.absolute) + '</div></td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-action="edit" data-id="' + item.id + '"><i class="bi bi-pencil-square"></i></button><button class="btn btn-outline-secondary" data-action="copy" data-id="' + item.id + '"><i class="bi bi-clipboard"></i></button><button class="btn btn-outline-danger" data-action="delete" data-id="' + item.id + '"><i class="bi bi-trash"></i></button></div></td></tr>';
+      return '<tr class="' + selectedClass + '" data-row-id="' + item.id + '"><td><div class="fw-semibold mb-1 text-break">' + escapeHtml(item.url) + '</div><div class="text-muted small" title="' + escapeHtml(item.description || '') + '">' + (description ? escapeHtml(description) : 'Add some context for this target.') + '</div></td><td>' + badge + '</td><td><div class="small fw-semibold">' + escapeHtml(times.relative) + '</div><div class="text-muted small">' + escapeHtml(times.absolute) + '</div></td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-action="edit" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Edit target"><i class="bi bi-pencil-square"></i></button><button class="btn btn-outline-secondary" data-action="copy" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Copy URL"><i class="bi bi-clipboard"></i></button><button class="btn btn-outline-danger" data-action="delete" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Delete target"><i class="bi bi-trash"></i></button></div></td></tr>';
     }).join('');
     els.tableBody.innerHTML = rows;
+    refreshTooltips();
   }
 
   function getSelectedItem() {
@@ -486,6 +504,7 @@
       if (els.detailCopy) {
         els.detailCopy.disabled = true;
       }
+      refreshTooltips();
       return;
     }
     const schedule = (item.schedule || '').trim();
@@ -508,6 +527,7 @@
       els.detailCopy.disabled = false;
       els.detailCopy.dataset.id = String(item.id);
     }
+    refreshTooltips();
   }
 
   function renderTimeline() {
@@ -518,6 +538,7 @@
     if (!scheduled.length) {
       els.timelineList.innerHTML = '';
       els.timelineEmpty.classList.remove('d-none');
+      refreshTooltips();
       return;
     }
     els.timelineEmpty.classList.add('d-none');
@@ -526,6 +547,7 @@
       return '<li class="list-group-item"><div class="d-flex justify-content-between align-items-start"><div><div class="fw-semibold text-break">' + escapeHtml(item.schedule) + '</div><div class="text-muted small">' + escapeHtml(item.url) + '</div></div><span class="badge text-bg-light text-muted">' + escapeHtml(times.relative) + '</span></div></li>';
     }).join('');
     els.timelineList.innerHTML = itemsHtml;
+    refreshTooltips();
   }
 
   function refreshUI() {
@@ -546,6 +568,7 @@
     els.modeIndicator.className = 'badge text-bg-primary';
     updateScheduleHint();
     els.urlField.focus({ preventScroll: true });
+    refreshTooltips();
   }
 
   function populateForm(item) {
@@ -560,6 +583,7 @@
     els.modeIndicator.className = 'badge text-bg-warning';
     updateScheduleHint();
     els.urlField.focus({ preventScroll: true });
+    refreshTooltips();
   }
 
   function selectItem(id) {
@@ -779,6 +803,7 @@
         updatePreviewContent();
       }
     });
+    refreshTooltips();
   }
 
   resetForm();
@@ -787,5 +812,6 @@
 
   const bootstrapJs = document.createElement('script');
   bootstrapJs.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
+  bootstrapJs.addEventListener('load', refreshTooltips);
   shadow.appendChild(bootstrapJs);
 })();
