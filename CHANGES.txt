@@ -8,6 +8,3 @@ We need a section in the plugin for Categories. Example: A category (which we ca
 
 The options are created by us and the number of options can vary and be unlimited. 
 
-Time should be 24 hours format when shown in the UI backend.
-
-The text for Schedule is now white. It should be green if scheduled and red if not scheduled.

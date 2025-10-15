@@ -37,7 +37,18 @@
 
   const baseStyle = document.createElement('style');
   baseStyle.textContent = `
-    :host { display: block; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+    :host {
+      display: block;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --a4a-color-primary: #0d6efd;
+      --a4a-color-success: #198754;
+      --a4a-color-danger: #dc3545;
+      --a4a-color-success-bg: rgba(25, 135, 84, 0.12);
+      --a4a-color-success-border: rgba(25, 135, 84, 0.35);
+      --a4a-color-danger-bg: rgba(220, 53, 69, 0.12);
+      --a4a-color-danger-border: rgba(220, 53, 69, 0.35);
+      --a4a-icon-scale: 1;
+    }
     .a4a-busy { position: relative; }
     .a4a-busy::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.65); border-radius: 0.75rem; z-index: 10; }
     .a4a-busy::before { content: ''; position: absolute; top: 50%; left: 50%; width: 2.5rem; height: 2.5rem; margin: -1.25rem 0 0 -1.25rem; border-radius: 50%; border: 0.35rem solid rgba(13,110,253,0.25); border-top-color: rgba(13,110,253,0.8); animation: a4a-spin 0.7s linear infinite; z-index: 11; }
@@ -47,10 +58,19 @@
     .a4a-empty { padding: 3rem 1rem; text-align: center; }
     .a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
     .a4a-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
-    .a4a-icon svg { width: 1em; height: 1em; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .a4a-icon svg { width: calc(var(--a4a-icon-scale) * 1em); height: calc(var(--a4a-icon-scale) * 1em); stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .a4a-schedule-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; background: rgba(0,0,0,0.05); }
+    .a4a-schedule-badge .a4a-icon { font-size: 0.95em; }
+    .a4a-schedule-badge--scheduled { background-color: var(--a4a-color-success-bg); color: var(--a4a-color-success); border-color: var(--a4a-color-success-border); }
+    .a4a-schedule-badge--adhoc { background-color: var(--a4a-color-danger-bg); color: var(--a4a-color-danger); border-color: var(--a4a-color-danger-border); }
+    .a4a-schedule-text--scheduled { color: var(--a4a-color-success); }
+    .a4a-schedule-text--adhoc { color: var(--a4a-color-danger); }
     .a4a-xml-preview { max-height: 220px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #f8f9fa; border-radius: 0.5rem; padding: 1rem; }
   `;
   shadow.appendChild(baseStyle);
+
+  const themeStyle = document.createElement('style');
+  shadow.appendChild(themeStyle);
 
   const ICONS = Object.assign(Object.create(null), {
     plus: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`,
@@ -78,6 +98,228 @@
     return `<span class="a4a-icon${extra}" aria-hidden="true">${svg}</span>`;
   }
 
+  const STORAGE_KEY = 'a4a-ai-settings';
+  const DEFAULT_SETTINGS = Object.freeze({
+    primaryColor: '#0d6efd',
+    successColor: '#198754',
+    dangerColor: '#dc3545',
+    iconScale: 1
+  });
+
+  function normalizeHex(value) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    let hex = value.trim();
+    if (!hex) {
+      return null;
+    }
+    if (hex.startsWith('#')) {
+      hex = hex.slice(1);
+    }
+    if (hex.length === 3) {
+      hex = hex.split('').map((ch) => ch + ch).join('');
+    }
+    if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+      return null;
+    }
+    return `#${hex.toLowerCase()}`;
+  }
+
+  function hexToRgb(hex) {
+    const normalized = normalizeHex(hex);
+    if (!normalized) {
+      return null;
+    }
+    const value = parseInt(normalized.slice(1), 16);
+    return {
+      r: (value >> 16) & 255,
+      g: (value >> 8) & 255,
+      b: value & 255,
+      hex: normalized
+    };
+  }
+
+  function hexToRgba(hex, alpha) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) {
+      return `rgba(0, 0, 0, ${typeof alpha === 'number' ? alpha : 1})`;
+    }
+    const a = typeof alpha === 'number' ? Math.min(1, Math.max(0, alpha)) : 1;
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
+  }
+
+  function shadeColor(hex, percent) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) {
+      return hex;
+    }
+    const ratio = Math.max(-1, Math.min(1, percent));
+    const adjust = (channel) => {
+      if (ratio < 0) {
+        return Math.round(channel * (1 + ratio));
+      }
+      return Math.round(channel + (255 - channel) * ratio);
+    };
+    const r = adjust(rgb.r);
+    const g = adjust(rgb.g);
+    const b = adjust(rgb.b);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function clampIconScale(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      return DEFAULT_SETTINGS.iconScale;
+    }
+    return Math.min(1.75, Math.max(0.75, Number(num.toFixed(2))));
+  }
+
+  function loadSettings() {
+    const settings = { ...DEFAULT_SETTINGS };
+    try {
+      if (typeof window.localStorage === 'undefined') {
+        return settings;
+      }
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        return settings;
+      }
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === 'object') {
+        if (normalizeHex(parsed.primaryColor)) {
+          settings.primaryColor = normalizeHex(parsed.primaryColor);
+        }
+        if (normalizeHex(parsed.successColor)) {
+          settings.successColor = normalizeHex(parsed.successColor);
+        }
+        if (normalizeHex(parsed.dangerColor)) {
+          settings.dangerColor = normalizeHex(parsed.dangerColor);
+        }
+        if (parsed.iconScale !== undefined) {
+          settings.iconScale = clampIconScale(parsed.iconScale);
+        }
+      }
+    } catch (error) {
+      console.warn('axs4all - AI: unable to parse saved settings, using defaults.', error);
+    }
+    return settings;
+  }
+
+  function saveSettings(settings) {
+    try {
+      if (typeof window.localStorage === 'undefined') {
+        return;
+      }
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.warn('axs4all - AI: unable to persist settings.', error);
+    }
+  }
+
+  function applySettingsToTheme(settings) {
+    const primary = normalizeHex(settings.primaryColor) || DEFAULT_SETTINGS.primaryColor;
+    const success = normalizeHex(settings.successColor) || DEFAULT_SETTINGS.successColor;
+    const danger = normalizeHex(settings.dangerColor) || DEFAULT_SETTINGS.dangerColor;
+    const iconScale = clampIconScale(settings.iconScale);
+
+    const primaryHover = shadeColor(primary, -0.1);
+    const primaryActive = shadeColor(primary, -0.2);
+    const outlinePrimaryBg = hexToRgba(primary, 0.12);
+    const outlineDangerBg = hexToRgba(danger, 0.12);
+
+    themeStyle.textContent = `
+      :host {
+        --a4a-color-primary: ${primary};
+        --a4a-color-success: ${success};
+        --a4a-color-danger: ${danger};
+        --a4a-color-success-bg: ${hexToRgba(success, 0.12)};
+        --a4a-color-success-border: ${hexToRgba(success, 0.35)};
+        --a4a-color-danger-bg: ${hexToRgba(danger, 0.12)};
+        --a4a-color-danger-border: ${hexToRgba(danger, 0.35)};
+        --a4a-icon-scale: ${iconScale};
+      }
+      .btn-primary,
+      .btn-primary:focus,
+      .btn-primary:active {
+        background-color: ${primary};
+        border-color: ${primary};
+      }
+      .btn-primary:hover {
+        background-color: ${primaryHover};
+        border-color: ${primaryHover};
+      }
+      .btn-primary:active {
+        background-color: ${primaryActive};
+        border-color: ${primaryActive};
+      }
+      .btn-outline-primary {
+        color: ${primary};
+        border-color: ${primary};
+      }
+      .btn-outline-primary:hover,
+      .btn-outline-primary:focus,
+      .btn-outline-primary:active {
+        background-color: ${outlinePrimaryBg};
+        border-color: ${primary};
+        color: ${primary};
+      }
+      .btn-outline-danger {
+        color: ${danger};
+        border-color: ${danger};
+      }
+      .btn-outline-danger:hover,
+      .btn-outline-danger:focus,
+      .btn-outline-danger:active {
+        background-color: ${outlineDangerBg};
+        border-color: ${danger};
+        color: ${danger};
+      }
+      .btn-outline-secondary:hover,
+      .btn-outline-secondary:focus,
+      .btn-outline-secondary:active {
+        color: ${primary};
+        border-color: ${primary};
+      }
+      .badge.text-bg-primary {
+        background-color: ${outlinePrimaryBg};
+        color: ${primary};
+      }
+      .a4a-schedule-badge--scheduled {
+        background-color: ${hexToRgba(success, 0.12)};
+        border-color: ${hexToRgba(success, 0.35)};
+        color: ${success};
+      }
+      .a4a-schedule-badge--adhoc {
+        background-color: ${hexToRgba(danger, 0.12)};
+        border-color: ${hexToRgba(danger, 0.35)};
+        color: ${danger};
+      }
+      .a4a-schedule-text--scheduled,
+      .text-success {
+        color: ${success} !important;
+      }
+      .a4a-schedule-text--adhoc,
+      .text-danger {
+        color: ${danger} !important;
+      }
+    `;
+
+    return {
+      primaryColor: primary,
+      successColor: success,
+      dangerColor: danger,
+      iconScale
+    };
+  }
+
+  const initialSettings = loadSettings();
+  const sanitizedSettings = applySettingsToTheme(initialSettings);
+  if (JSON.stringify(initialSettings) !== JSON.stringify(sanitizedSettings)) {
+    saveSettings(sanitizedSettings);
+  }
+  const initialIconPercent = Math.round(sanitizedSettings.iconScale * 100);
+
   const markup = `
     <div class="bg-light min-vh-100">
       <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
@@ -85,7 +327,7 @@
           <a class="navbar-brand fw-semibold" href="#">axs4all Intelligence</a>
           <div class="ms-auto d-flex align-items-center gap-3">
             <span class="text-muted small" id="a4a-clock">--:--</span>
-            <button class="btn btn-primary btn-sm" data-action="new-url" data-bs-toggle="tooltip" data-bs-title="Create a new crawl target">
+            <button class="btn btn-primary btn-sm" data-action="new-url">
               ${icon('plus', 'me-1')}New Target
             </button>
           </div>
@@ -108,7 +350,7 @@
           <div class="col-12 col-sm-6 col-xl-3">
             <div class="card a4a-stat-card">
               <div class="card-body d-flex align-items-center gap-3">
-                <div class="icon-circle bg-primary-subtle text-primary fs-5" data-bs-toggle="tooltip" data-bs-title="Total URLs">${icon('list')}</div>
+                <div class="icon-circle bg-primary-subtle text-primary fs-5">${icon('list')}</div>
                 <div>
                   <div class="text-muted text-uppercase small">Total URLs</div>
                   <div class="display-6 mb-0" id="a4a-metric-total">0</div>
@@ -120,7 +362,7 @@
           <div class="col-12 col-sm-6 col-xl-3">
             <div class="card a4a-stat-card">
               <div class="card-body d-flex align-items-center gap-3">
-                <div class="icon-circle bg-success-subtle text-success fs-5" data-bs-toggle="tooltip" data-bs-title="Scheduled URLs">${icon('clock')}</div>
+                <div class="icon-circle bg-success-subtle text-success fs-5">${icon('clock')}</div>
                 <div>
                   <div class="text-muted text-uppercase small">Scheduled</div>
                   <div class="display-6 mb-0" id="a4a-metric-scheduled">0</div>
@@ -132,7 +374,7 @@
           <div class="col-12 col-sm-6 col-xl-3">
             <div class="card a4a-stat-card">
               <div class="card-body d-flex align-items-center gap-3">
-                <div class="icon-circle bg-warning-subtle text-warning fs-5" data-bs-toggle="tooltip" data-bs-title="Most recent update">${icon('refresh')}</div>
+                <div class="icon-circle bg-warning-subtle text-warning fs-5">${icon('refresh')}</div>
                 <div>
                   <div class="text-muted text-uppercase small">Last Update</div>
                   <div class="display-6 mb-0" id="a4a-metric-updated">--</div>
@@ -144,7 +386,7 @@
           <div class="col-12 col-sm-6 col-xl-3">
             <div class="card a4a-stat-card">
               <div class="card-body d-flex align-items-center gap-3">
-                <div class="icon-circle bg-info-subtle text-info fs-5" data-bs-toggle="tooltip" data-bs-title="Targets with XML snapshots">${icon('robot')}</div>
+                <div class="icon-circle bg-info-subtle text-info fs-5">${icon('robot')}</div>
                 <div>
                   <div class="text-muted text-uppercase small">AI Ready</div>
                   <div class="display-6 mb-0" id="a4a-metric-ai-ready">0</div>
@@ -160,7 +402,7 @@
                   <h2 class="h5 mb-1">Crawl Targets</h2>
                   <p class="text-muted mb-0">Monitor cadence, freshness, and recent edits.</p>
                 </div>
-                <button class="btn btn-outline-primary" data-action="new-url" data-bs-toggle="tooltip" data-bs-title="Add a new URL">
+                <button class="btn btn-outline-primary" data-action="new-url">
                   ${icon('plus', 'me-1')}Add URL
                 </button>
               </div>
@@ -184,7 +426,7 @@
                   <div class="icon-circle bg-primary-subtle text-primary">${icon('sparkles')}</div>
                   <h3 class="h5">No targets yet</h3>
                   <p class="text-muted">Add a URL to start orchestrating the AI crawl pipeline.</p>
-                  <button class="btn btn-primary" data-action="new-url" data-bs-toggle="tooltip" data-bs-title="Create a new crawl target">${icon('plus', 'me-1')}Create URL</button>
+                  <button class="btn btn-primary" data-action="new-url">${icon('plus', 'me-1')}Create URL</button>
                 </div>
               </div>
             </div>
@@ -202,8 +444,8 @@
                 </div>
               </div>
               <div class="card-footer d-flex gap-2">
-                <button class="btn btn-outline-primary w-100" id="a4a-detail-edit" disabled data-bs-toggle="tooltip" data-bs-title="Open in editor">${icon('pencil', 'me-1')}Edit</button>
-                <button class="btn btn-outline-secondary" id="a4a-detail-copy" disabled title="Copy URL" data-bs-toggle="tooltip" data-bs-title="Copy URL">${icon('clipboard')}</button>
+                <button class="btn btn-outline-primary w-100" id="a4a-detail-edit" disabled>${icon('pencil', 'me-1')}Edit</button>
+                <button class="btn btn-outline-secondary" id="a4a-detail-copy" disabled>${icon('clipboard')}</button>
               </div>
             </div>
 
@@ -217,6 +459,36 @@
                   <p class="fw-semibold mb-1">No cadences scheduled</p>
                   <p class="mb-0">When you add schedules they will appear here.</p>
                 </div>
+              </div>
+            </div>
+
+            <div class="card shadow-sm" id="a4a-settings-card">
+              <div class="card-header">
+                <h2 class="h6 mb-0">Interface Settings</h2>
+              </div>
+              <div class="card-body">
+                <form id="a4a-settings-form" class="vstack gap-3">
+                  <div>
+                    <label class="form-label" for="a4a-setting-primary">Primary Color</label>
+                    <input type="color" class="form-control form-control-color" id="a4a-setting-primary" value="${sanitizedSettings.primaryColor}" aria-label="Pick primary color" />
+                  </div>
+                  <div>
+                    <label class="form-label" for="a4a-setting-success">Schedule Success Color</label>
+                    <input type="color" class="form-control form-control-color" id="a4a-setting-success" value="${sanitizedSettings.successColor}" aria-label="Pick scheduled color" />
+                  </div>
+                  <div>
+                    <label class="form-label" for="a4a-setting-danger">Schedule Pending Color</label>
+                    <input type="color" class="form-control form-control-color" id="a4a-setting-danger" value="${sanitizedSettings.dangerColor}" aria-label="Pick ad hoc color" />
+                  </div>
+                  <div>
+                    <label class="form-label" for="a4a-setting-icon">Icon Size</label>
+                    <input type="range" class="form-range" id="a4a-setting-icon" min="0.75" max="1.75" step="0.05" value="${sanitizedSettings.iconScale}" />
+                    <div class="form-text">Adjust the multiplier applied to interface icons. Current: <span id="a4a-setting-icon-label">${initialIconPercent}%</span></div>
+                  </div>
+                  <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="a4a-settings-reset">Reset defaults</button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
@@ -249,7 +521,7 @@
                     </div>
                     <div class="d-flex align-items-center justify-content-between">
                       <div class="form-text">Human-friendly note for now.</div>
-                      <span class="badge text-bg-secondary" id="a4a-schedule-hint">Draft</span>
+                      <span class="a4a-schedule-badge a4a-schedule-badge--adhoc" id="a4a-schedule-hint"></span>
                     </div>
                   </div>
                   <div class="col-12">
@@ -299,7 +571,8 @@
     items: [],
     activeId: null,
     selectedId: null,
-    loading: false
+    loading: false,
+    settings: { ...sanitizedSettings }
   };
 
   const els = {
@@ -337,24 +610,22 @@
     previewClose: app.querySelector('#a4a-preview-close'),
     previewCard: app.querySelector('#a4a-preview-card'),
     previewContent: app.querySelector('#a4a-preview-content'),
+    settingsCard: app.querySelector('#a4a-settings-card'),
+    settingsForm: app.querySelector('#a4a-settings-form'),
+    settingPrimary: app.querySelector('#a4a-setting-primary'),
+    settingSuccess: app.querySelector('#a4a-setting-success'),
+    settingDanger: app.querySelector('#a4a-setting-danger'),
+    settingIcon: app.querySelector('#a4a-setting-icon'),
+    settingIconLabel: app.querySelector('#a4a-setting-icon-label'),
+    settingsReset: app.querySelector('#a4a-settings-reset'),
     actionNewButtons: app.querySelectorAll('[data-action="new-url"]')
   };
+
+  updateSettingsForm();
 
   if (els.brand) {
     const versionLabel = typeof config.version === 'string' ? config.version.trim() : '';
     els.brand.textContent = versionLabel ? `axs4all Intelligence - v.${versionLabel}` : 'axs4all Intelligence';
-  }
-
-  let tooltipInstances = [];
-
-  function refreshTooltips() {
-    if (!window.bootstrap || !window.bootstrap.Tooltip) {
-      return;
-    }
-    tooltipInstances.forEach((instance) => instance.dispose());
-    tooltipInstances = Array.from(shadow.querySelectorAll('[data-bs-toggle="tooltip"]')).map((el) =>
-      new window.bootstrap.Tooltip(el, { boundary: shadow.host })
-    );
   }
 
   function updateClock() {
@@ -381,6 +652,61 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  function getScheduleDisplayMeta(schedule) {
+    const trimmed = typeof schedule === 'string' ? schedule.trim() : '';
+    if (trimmed) {
+      return {
+        text: trimmed,
+        icon: 'clock',
+        badgeClass: 'a4a-schedule-badge a4a-schedule-badge--scheduled',
+        textClass: 'a4a-schedule-text--scheduled',
+        type: 'scheduled'
+      };
+    }
+    return {
+      text: 'Not scheduled',
+      icon: 'sparkles',
+      badgeClass: 'a4a-schedule-badge a4a-schedule-badge--adhoc',
+      textClass: 'a4a-schedule-text--adhoc',
+      type: 'adhoc'
+    };
+  }
+
+  function renderScheduleBadge(schedule) {
+    const meta = getScheduleDisplayMeta(schedule);
+    return `<span class="${meta.badgeClass}">${icon(meta.icon)}<span>${escapeHtml(meta.text)}</span></span>`;
+  }
+
+  function updateSettingsForm() {
+    if (!els || !els.settingsForm) {
+      return;
+    }
+    const { primaryColor, successColor, dangerColor, iconScale } = state.settings;
+    if (els.settingPrimary) {
+      els.settingPrimary.value = normalizeHex(primaryColor) || DEFAULT_SETTINGS.primaryColor;
+    }
+    if (els.settingSuccess) {
+      els.settingSuccess.value = normalizeHex(successColor) || DEFAULT_SETTINGS.successColor;
+    }
+    if (els.settingDanger) {
+      els.settingDanger.value = normalizeHex(dangerColor) || DEFAULT_SETTINGS.dangerColor;
+    }
+    if (els.settingIcon) {
+      els.settingIcon.value = clampIconScale(iconScale);
+    }
+    if (els.settingIconLabel) {
+      els.settingIconLabel.textContent = `${Math.round(clampIconScale(iconScale) * 100)}%`;
+    }
+  }
+
+  function commitSettings(partial) {
+    const merged = { ...state.settings, ...partial };
+    const sanitized = applySettingsToTheme(merged);
+    state.settings = sanitized;
+    updateSettingsForm();
+    saveSettings(state.settings);
   }
 
   function timeAgo(date) {
@@ -481,16 +807,13 @@
   }
 
   function updateScheduleHint() {
-    const value = els.scheduleField.value.trim();
-    if (value) {
-      els.scheduleHint.textContent = 'Scheduled';
-      els.scheduleHint.className =
-        'badge bg-success-subtle text-success border border-success-subtle';
-    } else {
-      els.scheduleHint.textContent = 'Ad hoc';
-      els.scheduleHint.className =
-        'badge bg-danger-subtle text-danger border border-danger-subtle';
+    if (!els.scheduleHint) {
+      return;
     }
+    const value = typeof els.scheduleField.value === 'string' ? els.scheduleField.value : '';
+    const meta = getScheduleDisplayMeta(value);
+    els.scheduleHint.className = meta.badgeClass;
+    els.scheduleHint.innerHTML = `${icon(meta.icon)}<span>${escapeHtml(meta.text)}</span>`;
   }
 
   function updateMetrics() {
@@ -527,7 +850,6 @@
     if (!state.items.length) {
       els.tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No URLs yet. Use the button above to create one.</td></tr>';
       els.emptyState.classList.remove('d-none');
-      refreshTooltips();
       return;
     }
 
@@ -536,18 +858,13 @@
       .map((item) => {
         const times = formatModified(item.modified_gmt);
         const description = summarize(item.description, 90);
-        const schedule = (item.schedule || '').trim();
-        const badge = schedule
-          ? `<span class="badge bg-success-subtle text-success border border-success-subtle">${escapeHtml(
-              schedule
-            )}</span>`
-          : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Ad hoc</span>';
+        const badge = renderScheduleBadge(item.schedule);
         const selectedClass = state.selectedId === item.id ? 'table-active' : '';
         return `
           <tr class="${selectedClass}" data-row-id="${item.id}">
             <td>
               <div class="fw-semibold mb-1 text-break">${escapeHtml(item.url)}</div>
-              <div class="text-muted small" title="${escapeHtml(item.description || '')}">
+              <div class="text-muted small">
                 ${description ? escapeHtml(description) : 'Add some context for this target.'}
               </div>
             </td>
@@ -558,9 +875,9 @@
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm" role="group">
-                <button class="btn btn-outline-primary" data-action="edit" data-id="${item.id}" data-bs-toggle="tooltip" data-bs-title="Edit target">${icon('pencil')}</button>
-                <button class="btn btn-outline-secondary" data-action="copy" data-id="${item.id}" data-bs-toggle="tooltip" data-bs-title="Copy URL">${icon('copy')}</button>
-                <button class="btn btn-outline-danger" data-action="delete" data-id="${item.id}" data-bs-toggle="tooltip" data-bs-title="Delete target">${icon('trash')}</button>
+                <button class="btn btn-outline-primary" data-action="edit" data-id="${item.id}">${icon('pencil')}</button>
+                <button class="btn btn-outline-secondary" data-action="copy" data-id="${item.id}">${icon('copy')}</button>
+                <button class="btn btn-outline-danger" data-action="delete" data-id="${item.id}">${icon('trash')}</button>
               </div>
             </td>
           </tr>
@@ -569,7 +886,6 @@
       .join('');
 
     els.tableBody.innerHTML = rows;
-    refreshTooltips();
   }
 
   function getSelectedItem() {
@@ -586,16 +902,10 @@
         '<div class="text-center text-muted py-5"><p class="fw-semibold mb-1">Pick a target to inspect</p><p class="mb-0">Select a row to preview metadata and captured XML.</p></div>';
       els.detailEdit.disabled = true;
       els.detailCopy.disabled = true;
-      refreshTooltips();
       return;
     }
 
-    const schedule = (item.schedule || '').trim();
-    const badge = schedule
-      ? `<span class="badge bg-success-subtle text-success border border-success-subtle">${escapeHtml(
-          schedule
-        )}</span>`
-      : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Ad hoc</span>';
+    const scheduleBadge = renderScheduleBadge(item.schedule);
     const times = formatModified(item.modified_gmt);
     const xmlContent = (item.returned_data || '').trim()
       ? escapeHtml(item.returned_data)
@@ -608,7 +918,7 @@
       </div>
       <div class="mb-3">
         <div class="text-muted text-uppercase small fw-semibold mb-1">Cadence</div>
-        ${badge}
+        ${scheduleBadge}
       </div>
       <div class="mb-3">
         <div class="text-muted text-uppercase small fw-semibold mb-1">Last update</div>
@@ -628,7 +938,6 @@
     els.previewContent.innerHTML = xmlContent;
     els.detailEdit.disabled = false;
     els.detailCopy.disabled = false;
-    refreshTooltips();
   }
 
   function renderTimeline() {
@@ -636,27 +945,29 @@
     if (!scheduled.length) {
       els.timelineList.innerHTML = '';
       els.timelineEmpty.classList.remove('d-none');
-      refreshTooltips();
       return;
     }
 
     els.timelineEmpty.classList.add('d-none');
-    const itemsHtml = scheduled.slice(0, 6).map((item) => {
-      const times = formatModified(item.modified_gmt);
-      return `
+    const itemsHtml = scheduled
+      .slice(0, 6)
+      .map((item) => {
+        const times = formatModified(item.modified_gmt);
+        const meta = getScheduleDisplayMeta(item.schedule);
+        return `
         <li class="list-group-item">
           <div class="d-flex justify-content-between align-items-start">
             <div>
-              <div class="fw-semibold text-success text-break">${escapeHtml(item.schedule)}</div>
+              <div class="fw-semibold ${meta.textClass} text-break">${escapeHtml(meta.text)}</div>
               <div class="text-muted small">${escapeHtml(item.url)}</div>
             </div>
-            <span class="badge text-bg-light text-muted">${escapeHtml(times.relative)}</span>
+            <span class="badge bg-light text-muted">${escapeHtml(times.relative)}</span>
           </div>
         </li>
       `;
-    }).join('');
+      })
+      .join('');
     els.timelineList.innerHTML = itemsHtml;
-    refreshTooltips();
   }
 
   function refreshUI() {
@@ -678,7 +989,6 @@
     els.modeIndicator.className = 'badge text-bg-primary';
     updateScheduleHint();
     els.urlField.focus({ preventScroll: true });
-    refreshTooltips();
   }
 
   function populateForm(item) {
@@ -693,7 +1003,6 @@
     els.modeIndicator.className = 'badge text-bg-warning';
     updateScheduleHint();
     els.urlField.focus({ preventScroll: true });
-    refreshTooltips();
   }
 
   function selectItem(id) {
@@ -909,14 +1218,38 @@
         updatePreviewContent();
       }
     });
+    if (els.settingPrimary) {
+      els.settingPrimary.addEventListener('input', (event) => {
+        const value = normalizeHex(event.target.value) || state.settings.primaryColor;
+        commitSettings({ primaryColor: value });
+      });
+    }
+    if (els.settingSuccess) {
+      els.settingSuccess.addEventListener('input', (event) => {
+        const value = normalizeHex(event.target.value) || state.settings.successColor;
+        commitSettings({ successColor: value });
+      });
+    }
+    if (els.settingDanger) {
+      els.settingDanger.addEventListener('input', (event) => {
+        const value = normalizeHex(event.target.value) || state.settings.dangerColor;
+        commitSettings({ dangerColor: value });
+      });
+    }
+    if (els.settingIcon) {
+      els.settingIcon.addEventListener('input', (event) => {
+        commitSettings({ iconScale: clampIconScale(event.target.value) });
+      });
+    }
+    if (els.settingsReset) {
+      els.settingsReset.addEventListener('click', () => {
+        commitSettings({ ...DEFAULT_SETTINGS });
+      });
+    }
   }
 
   resetForm();
   wireEvents();
   fetchItems();
 
-  const bootstrapJs = document.createElement('script');
-  bootstrapJs.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
-  bootstrapJs.addEventListener('load', refreshTooltips);
-  shadow.appendChild(bootstrapJs);
 })();
