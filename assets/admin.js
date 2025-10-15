@@ -20,13 +20,6 @@
   bootstrapCss.referrerPolicy = "no-referrer";
   shadow.appendChild(bootstrapCss);
 
-  const bootstrapIcons = document.createElement("link");
-  bootstrapIcons.rel = "stylesheet";
-  bootstrapIcons.href = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css";
-  bootstrapIcons.crossOrigin = "anonymous";
-  bootstrapIcons.referrerPolicy = "no-referrer";
-  shadow.appendChild(bootstrapIcons);
-
   const baseStyle = document.createElement("style");
   baseStyle.textContent = [
     ":host { display: block; font-family: \"Segoe UI\", system-ui, -apple-system, sans-serif; }",
@@ -38,9 +31,35 @@
     ".a4a-stat-card { border: none; border-radius: 1rem; box-shadow: 0 0.35rem 1rem rgba(33,37,41,0.08); }",
     ".a4a-stat-card .icon-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }",
     ".a4a-empty { padding: 3rem 1rem; text-align: center; }",
-    ".a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }"
+    ".a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }",
+    ".a4a-icon svg { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; fill: currentColor; }"
   ].join("");
   shadow.appendChild(baseStyle);
+
+  const ICONS = {
+    plus: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2H9v4a1 1 0 0 1-2 0V9H3a1 1 0 0 1 0-2h4V3a1 1 0 0 1 1-1z"/></svg>',
+    list: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="2.5" height="2.5" rx="0.6"/><rect x="6" y="3.5" width="8" height="1.5" rx="0.5"/><rect x="2" y="7" width="2.5" height="2.5" rx="0.6"/><rect x="6" y="7.5" width="8" height="1.5" rx="0.5"/><rect x="2" y="11" width="2.5" height="2.5" rx="0.6"/><rect x="6" y="11.5" width="8" height="1.5" rx="0.5"/></svg>',
+    clock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1" fill="none"/><path d="M8 4.5a.5.5 0 0 1 .5.5v3.1l2 1.2a.5.5 0 0 1-.5.86l-2.3-1.36A.75.75 0 0 1 7 8.2V5a.5.5 0 0 1 .5-.5z"/></svg>',
+    refresh: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 1 1-3.53 8.53.75.75 0 0 1 1.06-1.06A3.5 3.5 0 1 0 8 4.5h-.69a.5.5 0 0 1-.38-.83l1.7-1.92a.5.5 0 0 1 .74 0l1.7 1.92a.5.5 0 0 1-.38.83H8z"/></svg>',
+    robot: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="5" width="10" height="8" rx="1.5"/><rect x="4" y="6.5" width="3" height="3" rx="1"/><rect x="9" y="6.5" width="3" height="3" rx="1"/><rect x="6.25" y="10.5" width="3.5" height="1.2" rx="0.6"/><path d="M7.25 2.5a.75.75 0 0 1 1.5 0V4h-1.5z"/></svg>',
+    sparkles: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="m7.5 2.5 1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><path d="m12.5 9.5.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"/><path d="m2.3 8 .5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg>',
+    pencil: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.64 2.64a1.5 1.5 0 0 1 0 2.12l-7.2 7.2-2.94.82.83-2.93 7.2-7.2a1.5 1.5 0 0 1 2.12 0z"/><path d="M11.23 1.23 12.77 2.77 11.7 3.83 10.16 2.3z"/></svg>',
+    clipboard: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="8" height="11" rx="1.5"/><rect x="5.5" y="2" width="5" height="2.5" rx="0.75"/><path d="M6 6.5h4.5a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1zm0 3h3.5a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1z"/></svg>',
+    trash: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5a.5.5 0 0 1 .5.5v1H14a.5.5 0 0 1 0 1h-.7l-.6 9.1A1.5 1.5 0 0 1 11.2 14H4.8a1.5 1.5 0 0 1-1.5-1.4L2.7 4H2a.5.5 0 0 1 0-1h3v-1a.5.5 0 0 1 .5-.5zm1.5 3a.5.5 0 0 0-1 0v6.5a.5.5 0 0 0 1 0zm3.5 0a.5.5 0 0 0-1 0v6.5a.5.5 0 0 0 1 0z"/></svg>',
+    link: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.75 3.5a2.75 2.75 0 0 1 1.95.81l.52.52a.75.75 0 1 1-1.06 1.06l-.52-.52a1.25 1.25 0 1 0-1.77 1.77l1.21 1.21a1.25 1.25 0 0 0 1.77 0 .75.75 0 1 1 1.06 1.06 2.75 2.75 0 0 1-3.89 0L4.71 9.2a2.75 2.75 0 0 1 3.89-3.89l.12.12-.53-.53a1.25 1.25 0 0 0-1.94 1.55.75.75 0 1 1-1.16.95 2.75 2.75 0 0 1 2.46-4.9z"/><path d="M9.25 12.5a2.75 2.75 0 0 1-1.95-.81l-.52-.52a.75.75 0 1 1 1.06-1.06l.52.52a1.25 1.25 0 0 0 1.77-1.77L8.92 7.65a1.25 1.25 0 0 0-1.77 0 .75.75 0 0 1-1.06-1.06 2.75 2.75 0 0 1 3.89 0l1.21 1.21a2.75 2.75 0 0 1-3.89 3.89l-.12-.12.53.53a1.25 1.25 0 0 0 1.94-1.55.75.75 0 1 1 1.16-.95 2.75 2.75 0 0 1-2.46 4.9z"/></svg>',
+    calendar: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 2a.75.75 0 0 1 1.5 0v1H5zM9.5 2a.75.75 0 0 1 1.5 0v1h-1.5zM3.5 5.5h9a.5.5 0 0 1 .5.5v1H3v-1a.5.5 0 0 1 .5-.5z"/><rect x="4.5" y="8" width="2" height="2" rx="0.4"/><rect x="7.5" y="8" width="2" height="2" rx="0.4"/><rect x="10.5" y="8" width="2" height="2" rx="0.4"/></svg>',
+    save: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2h7.38a1.5 1.5 0 0 1 1.06.44l1.62 1.62A1.5 1.5 0 0 1 14 5.12V12.5A1.5 1.5 0 0 1 12.5 14h-9A1.5 1.5 0 0 1 2 12.5v-9A1.5 1.5 0 0 1 3.5 2zm1 1.5v2a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-2zM4.5 8.5v3.5h7v-3.5z"/></svg>',
+    eraser: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="m6.5 2.5 7 7a1 1 0 0 1 0 1.4l-3.6 3.6a1 1 0 0 1-.7.3H4.1a1 1 0 0 1-.7-.3L1.5 11.9a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0z"/><path d="M12.9 13.5H9.2a1 1 0 0 0-.7.3l-.5.5h4.9a.5.5 0 1 0 0-1z" opacity="0.5"/></svg>',
+    code: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5a.75.75 0 0 1 .2 1.03L3.12 8l2.58 3.47a.75.75 0 1 1-1.23.9L1.94 8.47a1 1 0 0 1 0-.94l2.53-3.9a.75.75 0 0 1 1.03-.2zm5 0a.75.75 0 0 0-.2 1.03L12.88 8l-2.58 3.47a.75.75 0 1 0 1.23.9l2.53-3.9a1 1 0 0 0 0-.94l-2.53-3.9a.75.75 0 0 0-1.03-.2z"/></svg>',
+    close: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.22 4.22a.75.75 0 0 1 1.06 0L8 6.94l2.72-2.72a.75.75 0 1 1 1.06 1.06L9.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L8 9.06l-2.72 2.72a.75.75 0 0 1-1.06-1.06L6.94 8 4.22 5.28a.75.75 0 0 1 0-1.06z"/></svg>',
+    copy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8" height="9" rx="1.2"/><rect x="3" y="2" width="8" height="9" rx="1.2"/></svg>'
+  };
+
+  function icon(name, wrapperClass) {
+    const svg = ICONS[name] || '';
+    const classes = wrapperClass ? 'a4a-icon ' + wrapperClass : 'a4a-icon';
+    return '<span class="' + classes + '">' + svg + '</span>';
+  }
 
   const app = document.createElement("div");
   app.innerHTML = [
@@ -51,7 +70,7 @@
     "      <div class=\"ms-auto d-flex align-items-center gap-3\">",
     "        <span class=\"text-muted small\" id=\"a4a-clock\">--:--</span>",
     "        <button class=\"btn btn-primary btn-sm\" data-action=\"new-url\" data-bs-toggle=\"tooltip\" data-bs-title=\"Create a new crawl target\">",
-    "          <i class=\"bi bi-plus-lg me-1\"></i>New Target",
+    "          " + icon("plus", "me-1") + "New Target",
     "        </button>",
     "      </div>",
     "    </div>",
@@ -70,7 +89,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-primary-subtle text-primary fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Total URLs\"><i class=\"bi bi-list-task\"></i></div>",
+    "            <div class=\"icon-circle bg-primary-subtle text-primary fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Total URLs\">" + icon("list") + "</div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">Total URLs</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-total\">0</div>",
@@ -81,7 +100,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-success-subtle text-success fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Scheduled URLs\"><i class=\"bi bi-clock-history\"></i></div>",
+    "            <div class=\"icon-circle bg-success-subtle text-success fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Scheduled URLs\">" + icon("clock") + "</div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">Scheduled</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-scheduled\">0</div>",
@@ -92,7 +111,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-warning-subtle text-warning fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Most recent update\"><i class=\"bi bi-arrow-repeat\"></i></div>",
+    "            <div class=\"icon-circle bg-warning-subtle text-warning fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Most recent update\">" + icon("refresh") + "</div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">Last Update</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-updated\">--</div>",
@@ -103,7 +122,7 @@
     "      <div class=\"col-12 col-sm-6 col-xl-3\">",
     "        <div class=\"card a4a-stat-card\">",
     "          <div class=\"card-body d-flex align-items-center gap-3\">",
-    "            <div class=\"icon-circle bg-info-subtle text-info fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Targets with XML snapshots\"><i class=\"bi bi-robot\"></i></div>",
+    "            <div class=\"icon-circle bg-info-subtle text-info fs-5\" data-bs-toggle=\"tooltip\" data-bs-title=\"Targets with XML snapshots\">" + icon("robot") + "</div>",
     "            <div>",
     "              <div class=\"text-muted text-uppercase small\">AI Ready</div>",
     "              <div class=\"display-6 mb-0\" id=\"a4a-metric-ai-ready\">0</div>",
@@ -119,7 +138,7 @@
     "              <p class=\"text-muted mb-0\">Monitor cadence, freshness, and recent edits.</p>",
     "            </div>",
     "            <button class=\"btn btn-outline-primary\" data-action=\"new-url\" data-bs-toggle=\"tooltip\" data-bs-title=\"Add a new URL\">",
-    "              <i class=\"bi bi-plus-lg me-1\"></i>Add URL",
+    "              " + icon("plus", "me-1") + "Add URL",
     "            </button>",
     "          </div>",
     "          <div class=\"card-body p-0\">",
@@ -139,10 +158,10 @@
     "              </table>",
     "            </div>",
     "            <div class=\"a4a-empty d-none\" id=\"a4a-empty-state\">",
-    "              <div class=\"icon-circle bg-primary-subtle text-primary\"><i class=\"bi bi-sparkles\"></i></div>",
+    "              <div class=\"icon-circle bg-primary-subtle text-primary\">" + icon("sparkles") + "</div>",
     "              <h3 class=\"h5\">No targets yet</h3>",
     "              <p class=\"text-muted\">Add a URL to start orchestrating the AI crawl pipeline.</p>",
-    "              <button class=\"btn btn-primary\" data-action=\"new-url\" data-bs-toggle=\"tooltip\" data-bs-title=\"Create a new crawl target\"><i class=\"bi bi-plus-lg me-1\"></i>Create URL</button>",
+    "              <button class=\"btn btn-primary\" data-action=\"new-url\" data-bs-toggle=\"tooltip\" data-bs-title=\"Create a new crawl target\">" + icon("plus", "me-1") + "Create URL</button>",
     "            </div>",
     "          </div>",
     "        </div>",
@@ -159,8 +178,8 @@
     "            </div>",
     "          </div>",
     "          <div class=\"card-footer d-flex gap-2\">",
-    "            <button class=\"btn btn-outline-primary w-100\" id=\"a4a-detail-edit\" disabled data-bs-toggle=\"tooltip\" data-bs-title=\"Open in editor\"><i class=\"bi bi-pencil-square me-1\"></i>Edit</button>",
-    "            <button class=\"btn btn-outline-secondary\" id=\"a4a-detail-copy\" disabled title=\"Copy URL\" data-bs-toggle=\"tooltip\" data-bs-title=\"Copy URL\"><i class=\"bi bi-clipboard\"></i></button>",
+    "            <button class=\"btn btn-outline-primary w-100\" id=\"a4a-detail-edit\" disabled data-bs-toggle=\"tooltip\" data-bs-title=\"Open in editor\">" + icon("pencil", "me-1") + "Edit</button>",
+    "            <button class=\"btn btn-outline-secondary\" id=\"a4a-detail-copy\" disabled title=\"Copy URL\" data-bs-toggle=\"tooltip\" data-bs-title=\"Copy URL\">" + icon("clipboard") + "</button>",
     "          </div>",
     "        </div>",
     "        <div class=\"card shadow-sm\" id=\"a4a-timeline-card\">",
@@ -191,7 +210,7 @@
     "              <div class=\"col-md-6\">",
     "                <label class=\"form-label\" for=\"a4a-url\">Target URL <span class=\"text-danger\">*</span></label>",
     "                <div class=\"input-group\">",
-    "                  <span class=\"input-group-text\"><i class=\"bi bi-link-45deg\"></i></span>",
+    "                  <span class=\"input-group-text\">" + icon("link") + "</span>",
     "                  <input type=\"url\" class=\"form-control\" id=\"a4a-url\" required placeholder=\"https://example.com/page\" />",
     "                </div>",
     "                <div class=\"form-text\">Exact address the AI crawler should request.</div>",
@@ -199,7 +218,7 @@
     "              <div class=\"col-md-6\">",
     "                <label class=\"form-label\" for=\"a4a-schedule\">Schedule</label>",
     "                <div class=\"input-group\">",
-    "                  <span class=\"input-group-text\"><i class=\"bi bi-calendar3\"></i></span>",
+    "                  <span class=\"input-group-text\">" + icon("calendar") + "</span>",
     "                  <input type=\"text\" class=\"form-control\" id=\"a4a-schedule\" placeholder=\"e.g. Daily at 09:00 CET\" />",
     "                </div>",
     "                <div class=\"d-flex align-items-center justify-content-between\">",
@@ -217,9 +236,9 @@
     "                <div class=\"form-text\">Store the latest payload snapshot for comparisons.</div>",
     "              </div>",
     "              <div class=\"col-12 d-flex flex-wrap gap-2\">",
-    "                <button type=\"submit\" class=\"btn btn-primary\" id=\"a4a-submit\"><i class=\"bi bi-save me-1\"></i>Save Target</button>",
-    "                <button type=\"button\" class=\"btn btn-outline-secondary\" id=\"a4a-reset\"><i class=\"bi bi-eraser me-1\"></i>Reset</button>",
-    "                <button type=\"button\" class=\"btn btn-outline-dark\" id=\"a4a-preview-toggle\"><i class=\"bi bi-code-slash me-1\"></i>Preview XML</button>",
+    "                <button type=\"submit\" class=\"btn btn-primary\" id=\"a4a-submit\">" + icon("save", "me-1") + "Save Target</button>",
+    "                <button type=\"button\" class=\"btn btn-outline-secondary\" id=\"a4a-reset\">" + icon("eraser", "me-1") + "Reset</button>",
+    "                <button type=\"button\" class=\"btn btn-outline-dark\" id=\"a4a-preview-toggle\">" + icon("code", "me-1") + "Preview XML</button>",
     "              </div>",
     "            </form>",
     "          </div>",
@@ -232,7 +251,7 @@
     "        <div class=\"card border-secondary-subtle shadow-sm\">",
     "          <div class=\"card-header d-flex justify-content-between align-items-center\">",
     "            <h2 class=\"h6 mb-0\">XML Preview</h2>",
-    "            <button class=\"btn btn-sm btn-outline-secondary\" id=\"a4a-preview-close\"><i class=\"bi bi-x-lg\"></i></button>",
+    "            <button class=\"btn btn-sm btn-outline-secondary\" id=\"a4a-preview-close\">" + icon("close") + "</button>",
     "          </div>",
     "          <div class=\"card-body\">",
     "            <div class=\"a4a-xml-preview\"><code id=\"a4a-preview-content\"><!-- nothing to show yet --></code></div>",
@@ -478,7 +497,7 @@
         ? '<span class="badge text-bg-primary">' + escapeHtml(schedule) + '</span>'
         : '<span class="badge text-bg-secondary">Ad hoc</span>';
       const selectedClass = state.selectedId === item.id ? 'table-active' : '';
-      return '<tr class="' + selectedClass + '" data-row-id="' + item.id + '"><td><div class="fw-semibold mb-1 text-break">' + escapeHtml(item.url) + '</div><div class="text-muted small" title="' + escapeHtml(item.description || '') + '">' + (description ? escapeHtml(description) : 'Add some context for this target.') + '</div></td><td>' + badge + '</td><td><div class="small fw-semibold">' + escapeHtml(times.relative) + '</div><div class="text-muted small">' + escapeHtml(times.absolute) + '</div></td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-action="edit" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Edit target"><i class="bi bi-pencil-square"></i></button><button class="btn btn-outline-secondary" data-action="copy" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Copy URL"><i class="bi bi-clipboard"></i></button><button class="btn btn-outline-danger" data-action="delete" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Delete target"><i class="bi bi-trash"></i></button></div></td></tr>';
+      return '<tr class="' + selectedClass + '" data-row-id="' + item.id + '"><td><div class="fw-semibold mb-1 text-break">' + escapeHtml(item.url) + '</div><div class="text-muted small" title="' + escapeHtml(item.description || '') + '">' + (description ? escapeHtml(description) : 'Add some context for this target.') + '</div></td><td>' + badge + '</td><td><div class="small fw-semibold">' + escapeHtml(times.relative) + '</div><div class="text-muted small">' + escapeHtml(times.absolute) + '</div></td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-action="edit" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Edit target">' + icon("pencil") + '</button><button class="btn btn-outline-secondary" data-action="copy" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Copy URL">' + icon("copy") + '</button><button class="btn btn-outline-danger" data-action="delete" data-id="' + item.id + '" data-bs-toggle="tooltip" data-bs-title="Delete target">' + icon("trash") + '</button></div></td></tr>';
     }).join('');
     els.tableBody.innerHTML = rows;
     refreshTooltips();

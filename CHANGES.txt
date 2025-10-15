@@ -1,0 +1,1 @@
+We should add a "Run now" function for each URL, that overrides the schedule.  
