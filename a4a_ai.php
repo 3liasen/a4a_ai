@@ -2,7 +2,7 @@
 /**
  * Plugin Name: axs4all - AI
  * Description: Manage crawl targets for AI-powered processing with a Tabler-based admin experience.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: axs4all
  * Text Domain: a4a-ai
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 final class A4A_AI_Plugin {
-    const VERSION = '0.1.0';
+    const VERSION = '0.1.1';
     const SLUG = 'a4a-ai';
     const CPT = 'a4a_url';
 
@@ -42,7 +42,7 @@ final class A4A_AI_Plugin {
     private function __construct() {
         add_action('init', [$this, 'register_post_type']);
         add_action('rest_api_init', [$this, 'register_rest_routes']);
-        add_action('admin_menu', [$this, 'register_admin_menu']);
+        add_action('admin_menu', [$this, 'register_admin_menu'], 20);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
     }
 
@@ -98,15 +98,19 @@ final class A4A_AI_Plugin {
         $capability = 'manage_options';
         $callback = [$this, 'render_admin_app'];
 
-        $hook = add_submenu_page(
-            'tabler-dashboard',
-            __('axs4all - AI', 'a4a-ai'),
-            __('axs4all - AI', 'a4a-ai'),
-            $capability,
-            self::SLUG,
-            $callback,
-            5
-        );
+        $hook = null;
+        $parent_slug = $this->get_tabler_parent_slug();
+
+        if ($parent_slug) {
+            $hook = add_submenu_page(
+                $parent_slug,
+                __('axs4all - AI', 'a4a-ai'),
+                __('axs4all - AI', 'a4a-ai'),
+                $capability,
+                self::SLUG,
+                $callback
+            );
+        }
 
         if (!$hook) {
             $hook = add_menu_page(
@@ -123,6 +127,45 @@ final class A4A_AI_Plugin {
         if ($hook) {
             $this->admin_hook = $hook;
         }
+    }
+
+    /**
+     * Attempts to detect an existing Tabler-based parent menu.
+     *
+     * @return string
+     */
+    private function get_tabler_parent_slug() {
+        $candidates = ['tabler-dashboard', 'tabler-admin'];
+
+        foreach ($candidates as $slug) {
+            if ($this->menu_exists($slug)) {
+                return $slug;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Checks whether a top-level admin menu with the supplied slug exists.
+     *
+     * @param string $slug
+     * @return bool
+     */
+    private function menu_exists($slug) {
+        global $menu;
+
+        if (!is_array($menu)) {
+            return false;
+        }
+
+        foreach ($menu as $item) {
+            if (isset($item[2]) && $item[2] === $slug) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
