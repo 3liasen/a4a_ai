@@ -1,437 +1,280 @@
-﻿(function () {
-  const host = document.getElementById('a4a-ai-root');
+﻿
+(function () {
+  const host = document.getElementById("a4a-ai-root");
   if (!host) {
     return;
   }
 
-  const config = typeof a4aAI === 'object' ? a4aAI : null;
+  const config = typeof a4aAI === "object" ? a4aAI : null;
   if (!config || !config.restUrl || !config.nonce) {
-    console.error('axs4all - AI: Missing localized REST configuration.');
+    console.error("axs4all - AI: Missing localized REST configuration.");
     return;
   }
 
-  const shadow = host.attachShadow({ mode: 'open' });
+  const shadow = host.attachShadow({ mode: "open" });
 
-  const tablerImports = document.createElement('style');
-  tablerImports.textContent = `
-    @import url('https://cdn.jsdelivr.net/npm/@tabler/[email protected]/dist/css/tabler.min.css');
-    @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css');
-  `;
-  shadow.appendChild(tablerImports);
+  const bootstrapCss = document.createElement("link");
+  bootstrapCss.rel = "stylesheet";
+  bootstrapCss.href = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css";
+  shadow.appendChild(bootstrapCss);
 
-  const baseStyle = document.createElement('style');
-  baseStyle.textContent = `
-    :host { display: block; min-height: 100%; background: var(--tblr-body-bg, #f5f7fb); }
-    .a4a-card-loading { position: relative; }
-    .a4a-card-loading::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(255,255,255,0.82);
-      border-radius: var(--tblr-card-border-radius, 1rem);
-      z-index: 5;
-    }
-    .a4a-card-loading::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 2.75rem;
-      height: 2.75rem;
-      margin: -1.375rem 0 0 -1.375rem;
-      border-radius: 50%;
-      border: 0.35rem solid rgba(32,107,196,0.25);
-      border-top-color: rgba(32,107,196,0.95);
-      animation: a4a-spin 0.75s linear infinite;
-      z-index: 6;
-    }
-    @keyframes a4a-spin {
-      to { transform: rotate(360deg); }
-    }
-    .a4a-table-row { cursor: pointer; transition: background 0.2s ease; }
-    .a4a-table-row:hover { background: rgba(32,107,196,0.06); }
-    .a4a-tagline { max-width: 560px; }
-    .a4a-xml-preview { max-height: 220px; overflow: auto; background: #f8fafc; border-radius: 0.6rem; padding: 1rem; font-size: 0.85rem; }
-    .a4a-xml-preview code { white-space: pre-wrap; }
-    .timeline-one-side .timeline-item-marker { margin-top: 0.35rem; }
-    .timeline-one-side .timeline-item-content { padding-top: 0.35rem; }
-  `;
+  const bootstrapIcons = document.createElement("link");
+  bootstrapIcons.rel = "stylesheet";
+  bootstrapIcons.href = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css";
+  shadow.appendChild(bootstrapIcons);
+
+  const baseStyle = document.createElement("style");
+  baseStyle.textContent = [
+    ":host { display: block; font-family: \"Segoe UI\", system-ui, -apple-system, sans-serif; }",
+    ".a4a-busy { position: relative; }",
+    ".a4a-busy::after { content: \"\"; position: absolute; inset: 0; background: rgba(255,255,255,0.65); border-radius: 0.75rem; z-index: 10; }",
+    ".a4a-busy::before { content: \"\"; position: absolute; top: 50%; left: 50%; width: 2.5rem; height: 2.5rem; margin: -1.25rem 0 0 -1.25rem; border-radius: 50%; border: 0.35rem solid rgba(13,110,253,0.25); border-top-color: rgba(13,110,253,0.85); animation: a4a-spin 0.7s linear infinite; z-index: 11; }",
+    "@keyframes a4a-spin { to { transform: rotate(360deg); } }",
+    ".a4a-xml-preview { max-height: 220px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace; background: #f8f9fa; border-radius: 0.5rem; padding: 1rem; }",
+    ".a4a-stat-card { border: none; border-radius: 1rem; box-shadow: 0 0.35rem 1rem rgba(33,37,41,0.08); }",
+    ".a4a-stat-card .icon-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }",
+    ".a4a-empty { padding: 3rem 1rem; text-align: center; }",
+    ".a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }"
+  ].join("");
   shadow.appendChild(baseStyle);
 
-  const app = document.createElement('div');
-  app.innerHTML = `
-    <div class="page">
-      <header class="navbar navbar-expand-md navbar-light d-print-none shadow-sm">
-        <div class="container-xl">
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#a4a-navbar" aria-controls="a4a-navbar" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <a class="navbar-brand d-flex align-items-center" href="#">
-            <span class="avatar avatar-sm bg-primary text-white">AI</span>
-            <span class="ms-2 navbar-brand-text">axs4all Intelligence</span>
-          </a>
-          <div class="navbar-nav flex-row order-md-last">
-            <div class="nav-item me-3 d-none d-md-flex align-items-center text-muted">
-              <i class="ti ti-clock-hour-4 me-1"></i>
-              <span id="a4a-clock">--:--</span>
-            </div>
-            <div class="nav-item dropdown">
-              <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
-                <span class="avatar avatar-sm">WP</span>
-                <div class="d-none d-xl-block ps-2">
-                  <div>Administrator</div>
-                  <div class="mt-1 small text-muted">axs4all</div>
-                </div>
-              </a>
-              <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                <a href="#" class="dropdown-item">Profile</a>
-                <a href="#" class="dropdown-item">Preferences</a>
-                <div class="dropdown-divider"></div>
-                <a href="#" class="dropdown-item">Log out</a>
-              </div>
-            </div>
-          </div>
-          <div class="collapse navbar-collapse" id="a4a-navbar">
-            <div class="navbar-nav">
-              <a class="nav-link active" href="#"><i class="ti ti-home me-2"></i>Overview</a>
-              <a class="nav-link" href="#"><i class="ti ti-calendar-stats me-2"></i>Schedules</a>
-              <a class="nav-link" href="#"><i class="ti ti-chart-bubble me-2"></i>Insights</a>
-            </div>
-          </div>
-        </div>
-      </header>
-      <div class="page-wrapper">
-        <div class="page-header d-print-none">
-          <div class="container-xl">
-            <div class="row g-2 align-items-center">
-              <div class="col">
-                <div class="page-pretitle">axs4all / AI</div>
-                <h2 class="page-title">URL Intelligence Hub</h2>
-                <div class="text-muted mt-2 a4a-tagline">
-                  Curate crawl targets, orchestrate schedules, and capture XML payloads ready for the AI ingestion queue.
-                </div>
-              </div>
-              <div class="col-auto ms-auto d-print-none">
-                <div class="btn-list">
-                  <button class="btn btn-outline-secondary" data-action="new-url">
-                    <i class="ti ti-refresh"></i>
-                    Sync Later
-                  </button>
-                  <button class="btn btn-primary" data-action="new-url">
-                    <i class="ti ti-plus"></i>
-                    New Target
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="page-body">
-          <div class="container-xl">
-
-            <div class="row row-deck row-cards mb-4">
-              <div class="col-sm-6 col-xl-3">
-                <div class="card card-sm shadow-sm">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <span class="avatar avatar-sm bg-primary-lt text-primary me-3">
-                        <i class="ti ti-world"></i>
-                      </span>
-                      <div>
-                        <div class="text-muted">Total URLs</div>
-                        <div class="h2 mb-0" id="a4a-metric-total">0</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-sm-6 col-xl-3">
-                <div class="card card-sm shadow-sm">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <span class="avatar avatar-sm bg-success-lt text-success me-3">
-                        <i class="ti ti-clock-play"></i>
-                      </span>
-                      <div>
-                        <div class="text-muted">Scheduled</div>
-                        <div class="h2 mb-0" id="a4a-metric-scheduled">0</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-sm-6 col-xl-3">
-                <div class="card card-sm shadow-sm">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <span class="avatar avatar-sm bg-warning-lt text-warning me-3">
-                        <i class="ti ti-refresh-dot"></i>
-                      </span>
-                      <div>
-                        <div class="text-muted">Last Update</div>
-                        <div class="h2 mb-0" id="a4a-metric-updated">--</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-sm-6 col-xl-3">
-                <div class="card card-sm shadow-sm">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <span class="avatar avatar-sm bg-indigo-lt text-indigo me-3">
-                        <i class="ti ti-robot"></i>
-                      </span>
-                      <div>
-                        <div class="text-muted">AI Ready</div>
-                        <div class="h2 mb-0" id="a4a-metric-ai-ready">0</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row row-cards align-items-stretch mb-4">
-              <div class="col-12 d-none" id="a4a-notice-container"></div>
-
-              <div class="col-12 col-xl-8">
-                <div class="card card-stacked shadow-sm" id="a4a-table-card">
-                  <div class="card-header align-items-center">
-                    <div>
-                      <h3 class="card-title">Crawl Targets</h3>
-                      <div class="card-subtitle text-muted">Monitor cadence, freshness, and recent activity.</div>
-                    </div>
-                    <div class="card-actions">
-                      <button class="btn btn-outline-primary btn-icon" data-action="new-url" aria-label="Add URL">
-                        <i class="ti ti-plus"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div id="a4a-empty-state" class="card-body text-center text-muted py-6 d-none">
-                    <div class="avatar avatar-xl bg-primary-lt text-primary mb-3">
-                      <i class="ti ti-sparkles"></i>
-                    </div>
-                    <h3 class="mb-1">No targets yet</h3>
-                    <p class="text-muted mb-3">Drop in your first URL to kick off the AI ingestion pipeline.</p>
-                    <button class="btn btn-primary" data-action="new-url">
-                      <i class="ti ti-plus"></i>
-                      Create URL
-                    </button>
-                  </div>
-                  <div class="table-responsive" id="a4a-table-wrap">
-                    <table class="table table-vcenter table-hover">
-                      <thead>
-                        <tr>
-                          <th>URL &amp; Context</th>
-                          <th class="text-nowrap">Cadence</th>
-                          <th class="text-nowrap">Updated</th>
-                          <th class="w-1"></th>
-                        </tr>
-                      </thead>
-                      <tbody id="a4a-table-body"></tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12 col-xl-4">
-                <div class="card shadow-sm" id="a4a-detail-card">
-                  <div class="card-header">
-                    <div>
-                      <h3 class="card-title">Selected Target</h3>
-                      <div class="card-subtitle text-muted">Quick insight for the highlighted URL.</div>
-                    </div>
-                  </div>
-                  <div class="card-body" id="a4a-detail-body">
-                    <div class="empty">
-                      <p class="empty-title">Pick a target to inspect</p>
-                      <p class="empty-subtitle text-muted">Select a row from the list to preview metadata and captured XML.</p>
-                    </div>
-                  </div>
-                  <div class="card-footer d-flex gap-2">
-                    <button class="btn btn-outline-primary w-100" id="a4a-detail-edit" disabled>
-                      <i class="ti ti-edit me-1"></i>
-                      Quick Edit
-                    </button>
-                    <button class="btn btn-outline-secondary btn-icon" id="a4a-detail-copy" disabled aria-label="Copy URL">
-                      <i class="ti ti-copy"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <div class="card shadow-sm mt-3" id="a4a-timeline-card">
-                  <div class="card-header">
-                    <h3 class="card-title">Schedule Timeline</h3>
-                    <div class="card-subtitle text-muted">Visualise upcoming crawls at a glance.</div>
-                  </div>
-                  <div class="card-body" id="a4a-timeline">
-                    <div class="empty">
-                      <p class="empty-title">No schedules yet</p>
-                      <p class="empty-subtitle text-muted">Once you add cadences, they will appear here.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card shadow-sm" id="a4a-form-card">
-              <div class="card-header border-0">
-                <div>
-                  <h3 class="card-title" id="a4a-form-title">Create Crawl Target</h3>
-                  <div class="card-subtitle text-muted">Define the essentials and leave the rest to the AI crawler.</div>
-                </div>
-                <div class="card-actions">
-                  <span class="badge bg-primary-lt text-primary" id="a4a-mode-indicator">New</span>
-                </div>
-              </div>
-              <div class="card-body">
-                <form id="a4a-form" autocomplete="off">
-                  <input type="hidden" id="a4a-id" />
-                  <div class="row g-4">
-                    <div class="col-md-6">
-                      <label class="form-label" for="a4a-url">Target URL <span class="text-danger">*</span></label>
-                      <div class="input-icon mb-1">
-                        <span class="input-icon-addon">
-                          <i class="ti ti-link"></i>
-                        </span>
-                        <input type="url" class="form-control" id="a4a-url" required placeholder="https://example.com/page" />
-                      </div>
-                      <div class="form-hint">Exact address the AI crawler should hit.</div>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label" for="a4a-schedule">Schedule</label>
-                      <div class="input-icon mb-1">
-                        <span class="input-icon-addon">
-                          <i class="ti ti-calendar"></i>
-                        </span>
-                        <input type="text" class="form-control" id="a4a-schedule" placeholder="e.g. Daily at 09:00 CET" />
-                      </div>
-                      <div class="d-flex align-items-center justify-content-between">
-                        <div class="form-hint">Human-friendly cadence for now.</div>
-                        <span class="badge bg-secondary-lt text-secondary" id="a4a-schedule-hint">Draft</span>
-                      </div>
-                    </div>
-                    <div class="col-md-12">
-                      <label class="form-label" for="a4a-description">Description</label>
-                      <textarea class="form-control" id="a4a-description" rows="3" placeholder="Optional context for teammates or future prompts"></textarea>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Collection Tags</label>
-                      <div class="form-selectgroup form-selectgroup-boxes d-flex flex-wrap">
-                        <label class="form-selectgroup-item flex-fill">
-                          <input type="checkbox" name="tags" value="marketing" class="form-selectgroup-input" disabled>
-                          <span class="form-selectgroup-label d-flex align-items-center">
-                            <span class="me-3"><i class="ti ti-speakerphone text-primary"></i></span>
-                            Marketing
-                          </span>
-                        </label>
-                        <label class="form-selectgroup-item flex-fill">
-                          <input type="checkbox" name="tags" value="product" class="form-selectgroup-input" disabled>
-                          <span class="form-selectgroup-label d-flex align-items-center">
-                            <span class="me-3"><i class="ti ti-package text-success"></i></span>
-                            Product
-                          </span>
-                        </label>
-                      </div>
-                      <div class="form-hint">Tagging arrives with AI autoplan.</div>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Auto refresh</label>
-                      <label class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="a4a-auto-refresh" disabled>
-                        <span class="form-check-label">Pilot in progress</span>
-                      </label>
-                      <div class="text-muted small mt-2">
-                        Scheduling automation hooks into the upcoming crawler service.
-                      </div>
-                    </div>
-                    <div class="col-12">
-                      <label class="form-label" for="a4a-returned">Returned Data (XML)</label>
-                      <textarea class="form-control font-monospace" id="a4a-returned" rows="6" placeholder="<results>...</results>"></textarea>
-                      <div class="form-hint">Store the latest payload snapshot for AI diffing.</div>
-                    </div>
-                    <div class="col-12">
-                      <div class="btn-list">
-                        <button type="submit" class="btn btn-primary" id="a4a-submit">
-                          <i class="ti ti-device-floppy"></i>
-                          Save Target
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" id="a4a-reset">
-                          <i class="ti ti-eraser"></i>
-                          Reset Form
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" id="a4a-preview-toggle">
-                          <i class="ti ti-code"></i>
-                          Preview XML
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </form>
-              </div>
-              <div class="card-footer">
-                <div class="text-muted small">
-                  Roadmap: bind these schedules to WP-Cron and push queued URLs through the AI crawler.
-                </div>
-              </div>
-            </div>
-
-            <div class="card shadow-sm mt-4" id="a4a-xml-preview-card" hidden>
-              <div class="card-header">
-                <h3 class="card-title">XML Preview</h3>
-                <div class="card-actions">
-                  <button class="btn btn-icon btn-outline-secondary" id="a4a-preview-close" aria-label="Close preview">
-                    <i class="ti ti-x"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="a4a-xml-preview">
-                  <code id="a4a-preview-content">&lt;!-- nothing to show yet --&gt;</code>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+  const app = document.createElement("div");
+  app.innerHTML = [
+    "<div class=\"bg-light min-vh-100\">",
+    "  <nav class=\"navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm\">",
+    "    <div class=\"container-fluid\">",
+    "      <a class=\"navbar-brand fw-semibold\" href=\"#\">axs4all Intelligence</a>",
+    "      <div class=\"ms-auto d-flex align-items-center gap-3\">",
+    "        <span class=\"text-muted small\" id=\"a4a-clock\">--:--</span>",
+    "        <button class=\"btn btn-primary btn-sm\" data-action=\"new-url\">",
+    "          <i class=\"bi bi-plus-lg me-1\"></i>New Target",
+    "        </button>",
+    "      </div>",
+    "    </div>",
+    "  </nav>",
+    "  <main class=\"container-fluid py-4\">",
+    "    <div class=\"row g-4\">",
+    "      <div class=\"col-12\">",
+    "        <div id=\"a4a-notice\" class=\"alert d-none\" role=\"alert\"></div>",
+    "      </div>",
+    "      <div class=\"col-12\">",
+    "        <div class=\"border-bottom pb-3 mb-3\">",
+    "          <h1 class=\"h3 mb-1\">URL Intelligence Hub</h1>",
+    "          <p class=\"text-muted mb-0\">Curate crawl targets, coordinate schedules, and capture XML payloads ready for the AI pipeline.</p>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12 col-sm-6 col-xl-3\">",
+    "        <div class=\"card a4a-stat-card\">",
+    "          <div class=\"card-body d-flex align-items-center gap-3\">",
+    "            <div class=\"icon-circle bg-primary-subtle text-primary fs-5\"><i class=\"bi bi-list-task\"></i></div>",
+    "            <div>",
+    "              <div class=\"text-muted text-uppercase small\">Total URLs</div>",
+    "              <div class=\"display-6 mb-0\" id=\"a4a-metric-total\">0</div>",
+    "            </div>",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12 col-sm-6 col-xl-3\">",
+    "        <div class=\"card a4a-stat-card\">",
+    "          <div class=\"card-body d-flex align-items-center gap-3\">",
+    "            <div class=\"icon-circle bg-success-subtle text-success fs-5\"><i class=\"bi bi-clock-history\"></i></div>",
+    "            <div>",
+    "              <div class=\"text-muted text-uppercase small\">Scheduled</div>",
+    "              <div class=\"display-6 mb-0\" id=\"a4a-metric-scheduled\">0</div>",
+    "            </div>",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12 col-sm-6 col-xl-3\">",
+    "        <div class=\"card a4a-stat-card\">",
+    "          <div class=\"card-body d-flex align-items-center gap-3\">",
+    "            <div class=\"icon-circle bg-warning-subtle text-warning fs-5\"><i class=\"bi bi-arrow-repeat\"></i></div>",
+    "            <div>",
+    "              <div class=\"text-muted text-uppercase small\">Last Update</div>",
+    "              <div class=\"display-6 mb-0\" id=\"a4a-metric-updated\">--</div>",
+    "            </div>",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12 col-sm-6 col-xl-3\">",
+    "        <div class=\"card a4a-stat-card\">",
+    "          <div class=\"card-body d-flex align-items-center gap-3\">",
+    "            <div class=\"icon-circle bg-info-subtle text-info fs-5\"><i class=\"bi bi-robot\"></i></div>",
+    "            <div>",
+    "              <div class=\"text-muted text-uppercase small\">AI Ready</div>",
+    "              <div class=\"display-6 mb-0\" id=\"a4a-metric-ai-ready\">0</div>",
+    "            </div>",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12 col-xl-8\">",
+    "        <div class=\"card shadow-sm\" id=\"a4a-table-card\">",
+    "          <div class=\"card-header d-flex flex-wrap align-items-center justify-content-between gap-3\">",
+    "            <div>",
+    "              <h2 class=\"h5 mb-1\">Crawl Targets</h2>",
+    "              <p class=\"text-muted mb-0\">Monitor cadence, freshness, and recent edits.</p>",
+    "            </div>",
+    "            <button class=\"btn btn-outline-primary\" data-action=\"new-url\">",
+    "              <i class=\"bi bi-plus-lg me-1\"></i>Add URL",
+    "            </button>",
+    "          </div>",
+    "          <div class=\"card-body p-0\">",
+    "            <div class=\"table-responsive\">",
+    "              <table class=\"table table-hover align-middle mb-0\">",
+    "                <thead class=\"table-light\">",
+    "                  <tr>",
+    "                    <th>URL &amp; context</th>",
+    "                    <th style=\"width: 140px;\">Cadence</th>",
+    "                    <th style=\"width: 160px;\">Updated</th>",
+    "                    <th class=\"text-end\" style=\"width: 130px;\">Actions</th>",
+    "                  </tr>",
+    "                </thead>",
+    "                <tbody id=\"a4a-table-body\">",
+    "                  <tr><td colspan=\"4\" class=\"text-center py-4 text-muted\">Loading...</td></tr>",
+    "                </tbody>",
+    "              </table>",
+    "            </div>",
+    "            <div class=\"a4a-empty d-none\" id=\"a4a-empty-state\">",
+    "              <div class=\"icon-circle bg-primary-subtle text-primary\"><i class=\"bi bi-sparkles\"></i></div>",
+    "              <h3 class=\"h5\">No targets yet</h3>",
+    "              <p class=\"text-muted\">Add a URL to start orchestrating the AI crawl pipeline.</p>",
+    "              <button class=\"btn btn-primary\" data-action=\"new-url\"><i class=\"bi bi-plus-lg me-1\"></i>Create URL</button>",
+    "            </div>",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12 col-xl-4 d-flex flex-column gap-4\">",
+    "        <div class=\"card shadow-sm flex-fill\" id=\"a4a-detail-card\">",
+    "          <div class=\"card-header\">",
+    "            <h2 class=\"h6 mb-0\">Selected Target</h2>",
+    "          </div>",
+    "          <div class=\"card-body\" id=\"a4a-detail-body\">",
+    "            <div class=\"text-center text-muted py-5\">",
+    "              <p class=\"fw-semibold mb-1\">Pick a target to inspect</p>",
+    "              <p class=\"mb-0\">Select a row to preview metadata and captured XML.</p>",
+    "            </div>",
+    "          </div>",
+    "          <div class=\"card-footer d-flex gap-2\">",
+    "            <button class=\"btn btn-outline-primary w-100\" id=\"a4a-detail-edit\" disabled><i class=\"bi bi-pencil-square me-1\"></i>Edit</button>",
+    "            <button class=\"btn btn-outline-secondary\" id=\"a4a-detail-copy\" disabled title=\"Copy URL\"><i class=\"bi bi-clipboard\"></i></button>",
+    "          </div>",
+    "        </div>",
+    "        <div class=\"card shadow-sm\" id=\"a4a-timeline-card\">",
+    "          <div class=\"card-header\">",
+    "            <h2 class=\"h6 mb-0\">Schedule Timeline</h2>",
+    "          </div>",
+    "          <div class=\"card-body p-0\">",
+    "            <ul class=\"list-group list-group-flush\" id=\"a4a-timeline-list\"></ul>",
+    "            <div class=\"text-center text-muted py-4\" id=\"a4a-timeline-empty\">",
+    "              <p class=\"fw-semibold mb-1\">No cadences scheduled</p>",
+    "              <p class=\"mb-0\">When you add schedules they will appear here.</p>",
+    "            </div>",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12\">",
+    "        <div class=\"card shadow-sm\" id=\"a4a-form-card\">",
+    "          <div class=\"card-header d-flex flex-wrap align-items-center justify-content-between gap-3\">",
+    "            <div>",
+    "              <h2 class=\"h5 mb-1\" id=\"a4a-form-title\">Create Crawl Target</h2>",
+    "              <p class=\"text-muted mb-0\">Define the essentials and leave the crawling to automation.</p>",
+    "            </div>",
+    "            <span class=\"badge text-bg-primary\" id=\"a4a-mode-indicator\">New</span>",
+    "          </div>",
+    "          <div class=\"card-body\">",
+    "            <form id=\"a4a-form\" class=\"row g-4\" autocomplete=\"off\">",
+    "              <input type=\"hidden\" id=\"a4a-id\" />",
+    "              <div class=\"col-md-6\">",
+    "                <label class=\"form-label\" for=\"a4a-url\">Target URL <span class=\"text-danger\">*</span></label>",
+    "                <div class=\"input-group\">",
+    "                  <span class=\"input-group-text\"><i class=\"bi bi-link-45deg\"></i></span>",
+    "                  <input type=\"url\" class=\"form-control\" id=\"a4a-url\" required placeholder=\"https://example.com/page\" />",
+    "                </div>",
+    "                <div class=\"form-text\">Exact address the AI crawler should request.</div>",
+    "              </div>",
+    "              <div class=\"col-md-6\">",
+    "                <label class=\"form-label\" for=\"a4a-schedule\">Schedule</label>",
+    "                <div class=\"input-group\">",
+    "                  <span class=\"input-group-text\"><i class=\"bi bi-calendar3\"></i></span>",
+    "                  <input type=\"text\" class=\"form-control\" id=\"a4a-schedule\" placeholder=\"e.g. Daily at 09:00 CET\" />",
+    "                </div>",
+    "                <div class=\"d-flex align-items-center justify-content-between\">",
+    "                  <div class=\"form-text\">Human-friendly note for now.</div>",
+    "                  <span class=\"badge text-bg-secondary\" id=\"a4a-schedule-hint\">Draft</span>",
+    "                </div>",
+    "              </div>",
+    "              <div class=\"col-12\">",
+    "                <label class=\"form-label\" for=\"a4a-description\">Description</label>",
+    "                <textarea class=\"form-control\" id=\"a4a-description\" rows=\"3\" placeholder=\"Optional context for teammates or AI prompts\"></textarea>",
+    "              </div>",
+    "              <div class=\"col-12\">",
+    "                <label class=\"form-label\" for=\"a4a-returned\">Returned Data (XML)</label>",
+    "                <textarea class=\"form-control\" id=\"a4a-returned\" rows=\"6\" placeholder=\"<results>...</results>\"></textarea>",
+    "                <div class=\"form-text\">Store the latest payload snapshot for comparisons.</div>",
+    "              </div>",
+    "              <div class=\"col-12 d-flex flex-wrap gap-2\">",
+    "                <button type=\"submit\" class=\"btn btn-primary\" id=\"a4a-submit\"><i class=\"bi bi-save me-1\"></i>Save Target</button>",
+    "                <button type=\"button\" class=\"btn btn-outline-secondary\" id=\"a4a-reset\"><i class=\"bi bi-eraser me-1\"></i>Reset</button>",
+    "                <button type=\"button\" class=\"btn btn-outline-dark\" id=\"a4a-preview-toggle\"><i class=\"bi bi-code-slash me-1\"></i>Preview XML</button>",
+    "              </div>",
+    "            </form>",
+    "          </div>",
+    "          <div class=\"card-footer text-muted small\">",
+    "            Roadmap: map schedules to WP-Cron and stream outputs to the AI ingestion workers.",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "      <div class=\"col-12\" id=\"a4a-preview-card\" hidden>",
+    "        <div class=\"card border-secondary-subtle shadow-sm\">",
+    "          <div class=\"card-header d-flex justify-content-between align-items-center\">",
+    "            <h2 class=\"h6 mb-0\">XML Preview</h2>",
+    "            <button class=\"btn btn-sm btn-outline-secondary\" id=\"a4a-preview-close\"><i class=\"bi bi-x-lg\"></i></button>",
+    "          </div>",
+    "          <div class=\"card-body\">",
+    "            <div class=\"a4a-xml-preview\"><code id=\"a4a-preview-content\"><!-- nothing to show yet --></code></div>",
+    "          </div>",
+    "        </div>",
+    "      </div>",
+    "    </div>",
+    "  </main>",
+    "</div>"
+  ].join("");
   shadow.appendChild(app);
 
-  const restUrl = config.restUrl.replace(/\/$/, '');
+  const restUrl = config.restUrl.replace(/\/$/, "");
   const nonce = config.nonce;
 
   const state = {
     items: [],
     activeId: null,
     selectedId: null,
-    loading: false,
+    loading: false
   };
 
   const els = {
     clock: app.querySelector('#a4a-clock'),
-    notice: app.querySelector('#a4a-notice-container'),
+    notice: app.querySelector('#a4a-notice'),
     metrics: {
       total: app.querySelector('#a4a-metric-total'),
       scheduled: app.querySelector('#a4a-metric-scheduled'),
       updated: app.querySelector('#a4a-metric-updated'),
-      aiReady: app.querySelector('#a4a-metric-ai-ready'),
+      aiReady: app.querySelector('#a4a-metric-ai-ready')
     },
     tableBody: app.querySelector('#a4a-table-body'),
-    tableWrap: app.querySelector('#a4a-table-wrap'),
     tableCard: app.querySelector('#a4a-table-card'),
     emptyState: app.querySelector('#a4a-empty-state'),
+    detailCard: app.querySelector('#a4a-detail-card'),
     detailBody: app.querySelector('#a4a-detail-body'),
     detailEdit: app.querySelector('#a4a-detail-edit'),
     detailCopy: app.querySelector('#a4a-detail-copy'),
-    timeline: app.querySelector('#a4a-timeline'),
+    timelineList: app.querySelector('#a4a-timeline-list'),
+    timelineEmpty: app.querySelector('#a4a-timeline-empty'),
     form: app.querySelector('#a4a-form'),
+    formCard: app.querySelector('#a4a-form-card'),
     idField: app.querySelector('#a4a-id'),
     urlField: app.querySelector('#a4a-url'),
-    descriptionField: app.querySelector('#a4a-description'),
     scheduleField: app.querySelector('#a4a-schedule'),
+    descriptionField: app.querySelector('#a4a-description'),
     returnedField: app.querySelector('#a4a-returned'),
     submitButton: app.querySelector('#a4a-submit'),
     resetButton: app.querySelector('#a4a-reset'),
@@ -440,9 +283,9 @@
     scheduleHint: app.querySelector('#a4a-schedule-hint'),
     previewToggle: app.querySelector('#a4a-preview-toggle'),
     previewClose: app.querySelector('#a4a-preview-close'),
-    previewCard: app.querySelector('#a4a-xml-preview-card'),
+    previewCard: app.querySelector('#a4a-preview-card'),
     previewContent: app.querySelector('#a4a-preview-content'),
-    actionNewButtons: app.querySelectorAll('[data-action="new-url"]'),
+    actionNewButtons: app.querySelectorAll('[data-action="new-url"]')
   };
 
   function updateClock() {
@@ -480,7 +323,7 @@
       ['day', 86400],
       ['hour', 3600],
       ['minute', 60],
-      ['second', 1],
+      ['second', 1]
     ];
     for (const [unit, seconds] of units) {
       if (Math.abs(diffSeconds) >= seconds || unit === 'second') {
@@ -492,19 +335,19 @@
 
   function formatModified(gmtString) {
     if (!gmtString) {
-      return { relative: 'Never', absolute: '-' };
+      return { relative: 'Never', absolute: '--' };
     }
-    const date = new Date(`${gmtString}Z`);
+    const date = new Date(gmtString + 'Z');
     if (Number.isNaN(date.getTime())) {
-      return { relative: 'Never', absolute: '-' };
+      return { relative: 'Never', absolute: '--' };
     }
     return {
       relative: timeAgo(date),
-      absolute: date.toLocaleString(),
+      absolute: date.toLocaleString()
     };
   }
 
-  function summarize(value, length = 80) {
+  function summarize(value, length) {
     const trimmed = (value || '').trim();
     if (!trimmed) {
       return '';
@@ -512,55 +355,44 @@
     if (trimmed.length <= length) {
       return trimmed;
     }
-    return `${trimmed.slice(0, length)}...`;
+    return trimmed.slice(0, length) + '...';
   }
 
-  function setNotice(message, type = 'info') {
+  function setNotice(message, type) {
     if (!els.notice) {
       return;
     }
     if (!message) {
-      els.notice.classList.add('d-none');
+      els.notice.className = 'alert d-none';
       els.notice.innerHTML = '';
       return;
     }
-    const icons = {
-      info: 'ti ti-info-circle',
-      success: 'ti ti-circle-check',
-      warning: 'ti ti-alert-triangle',
-      danger: 'ti ti-alert-octagon',
-    };
-    const icon = icons[type] || icons.info;
-    els.notice.classList.remove('d-none');
-    els.notice.innerHTML = `
-      <div class="alert alert-${type} alert-important" role="alert">
-        <div class="d-flex align-items-center">
-          <div class="alert-icon me-2"><i class="${icon}"></i></div>
-          <div>${escapeHtml(message)}</div>
-        </div>
-        <button type="button" class="btn-close" data-action="dismiss-notice" aria-label="Close"></button>
-      </div>
-    `;
+    const tone = type || 'info';
+    els.notice.className = 'alert alert-' + tone;
+    els.notice.innerHTML = '<div class="d-flex justify-content-between align-items-center gap-3"><span>' + escapeHtml(message) + '</span><button type="button" class="btn-close" data-action="dismiss"></button></div>';
   }
 
   if (els.notice) {
     els.notice.addEventListener('click', (event) => {
-      if (event.target.closest('[data-action="dismiss-notice"]')) {
+      if (event.target.closest('[data-action="dismiss"]')) {
         setNotice('');
       }
     });
   }
-
   function setLoading(flag) {
     state.loading = flag;
     const method = flag ? 'add' : 'remove';
-    [els.tableCard, app.querySelector('#a4a-form-card')].forEach((card) => {
+    [els.tableCard, els.formCard, els.detailCard].forEach((card) => {
       if (card) {
-        card.classList[method]('a4a-card-loading');
+        card.classList[method]('a4a-busy');
       }
     });
-    if (els.submitButton) els.submitButton.disabled = flag;
-    if (els.resetButton) els.resetButton.disabled = flag;
+    if (els.submitButton) {
+      els.submitButton.disabled = flag;
+    }
+    if (els.resetButton) {
+      els.resetButton.disabled = flag;
+    }
     els.actionNewButtons.forEach((btn) => {
       btn.disabled = flag;
     });
@@ -573,21 +405,21 @@
     const value = els.scheduleField.value.trim();
     if (value) {
       els.scheduleHint.textContent = 'Scheduled';
-      els.scheduleHint.className = 'badge bg-success-lt text-success';
+      els.scheduleHint.className = 'badge text-bg-success';
     } else {
       els.scheduleHint.textContent = 'Draft';
-      els.scheduleHint.className = 'badge bg-secondary-lt text-secondary';
+      els.scheduleHint.className = 'badge text-bg-secondary';
     }
   }
 
   function updateMetrics() {
     const total = state.items.length;
-    const scheduled = state.items.filter((item) => (item.schedule || '').trim().length > 0).length;
-    const aiReady = state.items.filter((item) => (item.returned_data || '').trim().length > 0).length;
+    const scheduled = state.items.filter((item) => (item.schedule || '').trim()).length;
+    const aiReady = state.items.filter((item) => (item.returned_data || '').trim()).length;
     let latest = null;
     state.items.forEach((item) => {
       if (item.modified_gmt) {
-        const date = new Date(`${item.modified_gmt}Z`);
+        const date = new Date(item.modified_gmt + 'Z');
         if (!Number.isNaN(date.getTime()) && (!latest || date > latest)) {
           latest = date;
         }
@@ -596,13 +428,13 @@
     els.metrics.total.textContent = total;
     els.metrics.scheduled.textContent = scheduled;
     els.metrics.aiReady.textContent = aiReady;
-    els.metrics.updated.textContent = latest ? timeAgo(latest) : 'Never';
+    els.metrics.updated.textContent = latest ? timeAgo(latest) : '--';
   }
 
   function resortItems() {
     state.items.sort((a, b) => {
-      const dateA = a.modified_gmt ? Date.parse(`${a.modified_gmt}Z`) : 0;
-      const dateB = b.modified_gmt ? Date.parse(`${b.modified_gmt}Z`) : 0;
+      const dateA = a.modified_gmt ? Date.parse(a.modified_gmt + 'Z') : 0;
+      const dateB = b.modified_gmt ? Date.parse(b.modified_gmt + 'Z') : 0;
       return dateB - dateA;
     });
   }
@@ -612,62 +444,24 @@
       return;
     }
     if (!state.items.length) {
-      if (els.tableWrap) els.tableWrap.classList.add('d-none');
-      if (els.emptyState) els.emptyState.classList.remove('d-none');
-      els.tableBody.innerHTML = '';
+      els.tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No URLs yet. Use the button above to create one.</td></tr>';
+      if (els.emptyState) {
+        els.emptyState.classList.remove('d-none');
+      }
       return;
     }
-    if (els.tableWrap) els.tableWrap.classList.remove('d-none');
-    if (els.emptyState) els.emptyState.classList.add('d-none');
+    if (els.emptyState) {
+      els.emptyState.classList.add('d-none');
+    }
     const rows = state.items.map((item) => {
-      const { relative, absolute } = formatModified(item.modified_gmt);
+      const times = formatModified(item.modified_gmt);
       const description = summarize(item.description, 90);
-      const descriptionTitle = escapeHtml(item.description || '');
       const schedule = (item.schedule || '').trim();
       const badge = schedule
-        ? `<span class="badge bg-blue-lt text-blue">${escapeHtml(schedule)}</span>`
-        : '<span class="badge bg-secondary-lt text-secondary">Ad hoc</span>';
-      const isActive = state.selectedId === item.id;
-      const rowClass = isActive ? 'a4a-table-row table-active' : 'a4a-table-row';
-      return `
-        <tr class="${rowClass}" data-row-id="${item.id}">
-          <td>
-            <div class="d-flex align-items-start">
-              <span class="avatar avatar-sm bg-primary-lt text-primary me-2">
-                <i class="ti ti-link"></i>
-              </span>
-              <div class="flex-fill">
-                <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="fw-semibold text-reset text-wrap">
-                  ${escapeHtml(item.url)}
-                </a>
-                <div class="small text-muted text-truncate" title="${descriptionTitle}">
-                  ${description ? escapeHtml(description) : 'Add context for your teammates.'}
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="text-nowrap">
-            ${badge}
-          </td>
-          <td class="text-nowrap">
-            <div class="fw-semibold small">${escapeHtml(relative)}</div>
-            <div class="text-muted small">${escapeHtml(absolute)}</div>
-          </td>
-          <td class="text-end">
-            <div class="btn-list flex-nowrap">
-              <button class="btn btn-icon btn-outline-primary" data-action="edit" data-id="${item.id}" aria-label="Edit URL">
-                <i class="ti ti-pencil"></i>
-              </button>
-              <button class="btn btn-icon btn-outline-secondary" data-action="copy-url" data-id="${item.id}" aria-label="Copy URL">
-                <i class="ti ti-copy"></i>
-              </button>
-              <button class="btn btn-icon btn-outline-danger" data-action="delete" data-id="${item.id}" aria-label="Delete URL">
-                <i class="ti ti-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
+        ? '<span class="badge text-bg-primary">' + escapeHtml(schedule) + '</span>'
+        : '<span class="badge text-bg-secondary">Ad hoc</span>';
+      const selectedClass = state.selectedId === item.id ? 'table-active' : '';
+      return '<tr class="' + selectedClass + '" data-row-id="' + item.id + '"><td><div class="fw-semibold mb-1 text-break">' + escapeHtml(item.url) + '</div><div class="text-muted small" title="' + escapeHtml(item.description || '') + '">' + (description ? escapeHtml(description) : 'Add some context for this target.') + '</div></td><td>' + badge + '</td><td><div class="small fw-semibold">' + escapeHtml(times.relative) + '</div><div class="text-muted small">' + escapeHtml(times.absolute) + '</div></td><td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" data-action="edit" data-id="' + item.id + '"><i class="bi bi-pencil-square"></i></button><button class="btn btn-outline-secondary" data-action="copy" data-id="' + item.id + '"><i class="bi bi-clipboard"></i></button><button class="btn btn-outline-danger" data-action="delete" data-id="' + item.id + '"><i class="bi bi-trash"></i></button></div></td></tr>';
     }).join('');
     els.tableBody.innerHTML = rows;
   }
@@ -679,156 +473,99 @@
     return state.items.find((item) => item.id === state.selectedId) || null;
   }
 
-  function renderDetailPanel() {
-    if (!els.detailBody || !els.detailEdit || !els.detailCopy) {
+  function renderDetail() {
+    if (!els.detailBody) {
       return;
     }
     const item = getSelectedItem();
     if (!item) {
-      els.detailBody.innerHTML = `
-        <div class="empty">
-          <p class="empty-title">Pick a target to inspect</p>
-          <p class="empty-subtitle text-muted">Select a row from the list to preview metadata and captured XML.</p>
-        </div>
-      `;
-      els.detailEdit.disabled = true;
-      els.detailCopy.disabled = true;
+      els.detailBody.innerHTML = '<div class="text-center text-muted py-5"><p class="fw-semibold mb-1">Pick a target to inspect</p><p class="mb-0">Select a row to preview metadata and captured XML.</p></div>';
+      if (els.detailEdit) {
+        els.detailEdit.disabled = true;
+      }
+      if (els.detailCopy) {
+        els.detailCopy.disabled = true;
+      }
       return;
     }
     const schedule = (item.schedule || '').trim();
-    const scheduleBadge = schedule
-      ? `<span class="badge bg-blue-lt text-blue">${escapeHtml(schedule)}</span>`
-      : '<span class="badge bg-secondary-lt text-secondary">Ad hoc</span>';
-    const { relative, absolute } = formatModified(item.modified_gmt);
+    const badge = schedule
+      ? '<span class="badge text-bg-primary">' + escapeHtml(schedule) + '</span>'
+      : '<span class="badge text-bg-secondary">Ad hoc</span>';
+    const times = formatModified(item.modified_gmt);
     const xmlContent = (item.returned_data || '').trim()
       ? escapeHtml(item.returned_data)
-      : '&lt;!-- No XML captured yet --&gt;';
-    els.detailBody.innerHTML = `
-      <div class="mb-3">
-        <div class="text-muted text-uppercase fw-semibold small">Target URL</div>
-        <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="fw-semibold">
-          ${escapeHtml(item.url)}
-        </a>
-      </div>
-      <div class="datagrid mb-3">
-        <div class="datagrid-item">
-          <div class="datagrid-title">Cadence</div>
-          <div class="datagrid-content">${scheduleBadge}</div>
-        </div>
-        <div class="datagrid-item">
-          <div class="datagrid-title">Last update</div>
-          <div class="datagrid-content">
-            <div>${escapeHtml(relative)}</div>
-            <div class="text-muted small">${escapeHtml(absolute)}</div>
-          </div>
-        </div>
-        <div class="datagrid-item">
-          <div class="datagrid-title">AI readiness</div>
-          <div class="datagrid-content">
-            ${(item.returned_data || '').trim().length ? '<span class="badge bg-success-lt text-success">Has snapshot</span>' : '<span class="badge bg-yellow-lt text-yellow">Pending fetch</span>'}
-          </div>
-        </div>
-      </div>
-      <div class="mb-3">
-        <div class="text-muted text-uppercase fw-semibold small">Description</div>
-        <div>${escapeHtml(item.description || 'No description yet. Add some context for future prompts.')}</div>
-      </div>
-      <div>
-        <div class="text-muted text-uppercase fw-semibold small mb-2">Returned XML</div>
-        <div class="a4a-xml-preview"><code>${xmlContent}</code></div>
-      </div>
-    `;
-    els.previewContent.innerHTML = xmlContent;
-    els.detailEdit.disabled = false;
-    els.detailEdit.dataset.id = String(item.id);
-    els.detailCopy.disabled = false;
-    els.detailCopy.dataset.id = String(item.id);
+      : '&lt;!-- no XML captured yet --&gt;';
+    els.detailBody.innerHTML = '<div class="mb-3"><div class="text-muted text-uppercase small fw-semibold mb-1">Target URL</div><a href="' + escapeHtml(item.url) + '" class="text-decoration-none" target="_blank" rel="noopener noreferrer">' + escapeHtml(item.url) + '</a></div><div class="mb-3"><div class="text-muted text-uppercase small fw-semibold mb-1">Cadence</div>' + badge + '</div><div class="mb-3"><div class="text-muted text-uppercase small fw-semibold mb-1">Last update</div><div class="small fw-semibold">' + escapeHtml(times.relative) + '</div><div class="text-muted small">' + escapeHtml(times.absolute) + '</div></div><div class="mb-3"><div class="text-muted text-uppercase small fw-semibold mb-1">Description</div><p class="mb-0">' + escapeHtml(item.description || 'No description yet. Add notes for collaborators.') + '</p></div><div><div class="text-muted text-uppercase small fw-semibold mb-1">Returned XML</div><div class="a4a-xml-preview"><code>' + xmlContent + '</code></div></div>';
+    if (els.previewContent) {
+      els.previewContent.innerHTML = xmlContent;
+    }
+    if (els.detailEdit) {
+      els.detailEdit.disabled = false;
+      els.detailEdit.dataset.id = String(item.id);
+    }
+    if (els.detailCopy) {
+      els.detailCopy.disabled = false;
+      els.detailCopy.dataset.id = String(item.id);
+    }
   }
 
   function renderTimeline() {
-    if (!els.timeline) {
+    if (!els.timelineList || !els.timelineEmpty) {
       return;
     }
-    const scheduled = state.items
-      .filter((item) => (item.schedule || '').trim().length > 0)
-      .slice(0, 6);
+    const scheduled = state.items.filter((item) => (item.schedule || '').trim());
     if (!scheduled.length) {
-      els.timeline.innerHTML = `
-        <div class="empty">
-          <p class="empty-title">No schedules yet</p>
-          <p class="empty-subtitle text-muted">Once you add cadences, they will appear here.</p>
-        </div>
-      `;
+      els.timelineList.innerHTML = '';
+      els.timelineEmpty.classList.remove('d-none');
       return;
     }
-    const colors = ['primary', 'blue', 'green', 'orange', 'pink', 'indigo'];
-    const itemsHtml = scheduled.map((item, index) => {
-      const color = colors[index % colors.length];
-      const { relative } = formatModified(item.modified_gmt);
-      return `
-        <div class="timeline-item">
-          <div class="timeline-item-marker bg-${color}"></div>
-          <div class="timeline-item-content">
-            <div class="text-muted mb-1">${escapeHtml(item.schedule)}</div>
-            <div class="fw-semibold text-truncate">${escapeHtml(item.url)}</div>
-            <div class="small text-muted">${escapeHtml(relative)}</div>
-          </div>
-        </div>
-      `;
+    els.timelineEmpty.classList.add('d-none');
+    const itemsHtml = scheduled.slice(0, 6).map((item) => {
+      const times = formatModified(item.modified_gmt);
+      return '<li class="list-group-item"><div class="d-flex justify-content-between align-items-start"><div><div class="fw-semibold text-break">' + escapeHtml(item.schedule) + '</div><div class="text-muted small">' + escapeHtml(item.url) + '</div></div><span class="badge text-bg-light text-muted">' + escapeHtml(times.relative) + '</span></div></li>';
     }).join('');
-    els.timeline.innerHTML = `<div class="timeline timeline-one-side timeline-slim">${itemsHtml}</div>`;
+    els.timelineList.innerHTML = itemsHtml;
   }
 
   function refreshUI() {
     updateMetrics();
     renderTable();
-    renderDetailPanel();
+    renderDetail();
     renderTimeline();
   }
-
   function resetForm() {
     state.activeId = null;
-    if (els.idField) els.idField.value = '';
-    if (els.urlField) els.urlField.value = '';
-    if (els.descriptionField) els.descriptionField.value = '';
-    if (els.scheduleField) els.scheduleField.value = '';
-    if (els.returnedField) els.returnedField.value = '';
-    if (els.formTitle) els.formTitle.textContent = 'Create Crawl Target';
-    if (els.modeIndicator) {
-      els.modeIndicator.textContent = 'New';
-      els.modeIndicator.className = 'badge bg-primary-lt text-primary';
-    }
-    if (els.previewCard) {
-      els.previewCard.hidden = true;
-    }
+    els.idField.value = '';
+    els.urlField.value = '';
+    els.scheduleField.value = '';
+    els.descriptionField.value = '';
+    els.returnedField.value = '';
+    els.formTitle.textContent = 'Create Crawl Target';
+    els.modeIndicator.textContent = 'New';
+    els.modeIndicator.className = 'badge text-bg-primary';
     updateScheduleHint();
-    if (els.urlField) {
-      els.urlField.focus({ preventScroll: true });
-    }
+    els.urlField.focus({ preventScroll: true });
   }
 
   function populateForm(item) {
     state.activeId = item.id;
-    if (els.idField) els.idField.value = item.id;
-    if (els.urlField) els.urlField.value = item.url || '';
-    if (els.descriptionField) els.descriptionField.value = item.description || '';
-    if (els.scheduleField) els.scheduleField.value = item.schedule || '';
-    if (els.returnedField) els.returnedField.value = item.returned_data || '';
-    if (els.formTitle) els.formTitle.textContent = 'Update Crawl Target';
-    if (els.modeIndicator) {
-      els.modeIndicator.textContent = 'Editing';
-      els.modeIndicator.className = 'badge bg-orange-lt text-orange';
-    }
+    els.idField.value = item.id;
+    els.urlField.value = item.url || '';
+    els.scheduleField.value = item.schedule || '';
+    els.descriptionField.value = item.description || '';
+    els.returnedField.value = item.returned_data || '';
+    els.formTitle.textContent = 'Update Crawl Target';
+    els.modeIndicator.textContent = 'Editing';
+    els.modeIndicator.className = 'badge text-bg-warning';
     updateScheduleHint();
-    if (els.urlField) {
-      els.urlField.focus({ preventScroll: true });
-    }
+    els.urlField.focus({ preventScroll: true });
   }
 
   function selectItem(id) {
     if (!id) {
       state.selectedId = null;
-    } else if (!state.selectedId || state.selectedId !== id) {
+    } else if (state.selectedId !== id) {
       state.selectedId = id;
     }
     refreshUI();
@@ -838,8 +575,8 @@
     const options = {
       method,
       headers: {
-        'X-WP-Nonce': nonce,
-      },
+        'X-WP-Nonce': nonce
+      }
     };
     if (payload !== undefined) {
       options.headers['Content-Type'] = 'application/json';
@@ -848,7 +585,7 @@
     const response = await fetch(url, options);
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      const message = (error && error.message) || `Request failed with status ${response.status}`;
+      const message = (error && error.message) || 'Request failed with status ' + response.status;
       throw new Error(message);
     }
     return response.status === 204 ? null : response.json();
@@ -877,7 +614,7 @@
   async function deleteItem(id) {
     setLoading(true);
     try {
-      await request('DELETE', `${restUrl}/${id}`);
+      await request('DELETE', restUrl + '/' + id);
       state.items = state.items.filter((item) => item.id !== id);
       if (state.activeId === id) {
         state.activeId = null;
@@ -897,22 +634,16 @@
   }
 
   function updatePreviewContent() {
-    if (!els.previewContent || !els.returnedField) {
-      return;
-    }
     const value = (els.returnedField.value || '').trim();
     els.previewContent.innerHTML = value ? escapeHtml(value) : '&lt;!-- nothing to show yet --&gt;';
   }
 
-  function togglePreview(forceState) {
-    if (!els.previewCard) {
-      return;
-    }
-    const show = forceState !== undefined ? forceState : els.previewCard.hidden;
+  function togglePreview(force) {
+    const show = force !== undefined ? force : els.previewCard.hidden;
     els.previewCard.hidden = !show;
     if (show) {
       updatePreviewContent();
-      els.previewCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      els.previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
 
@@ -924,15 +655,15 @@
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
       } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        temp.style.position = 'fixed';
+        temp.style.opacity = '0';
+        document.body.appendChild(temp);
+        temp.focus();
+        temp.select();
         document.execCommand('copy');
-        document.body.removeChild(textarea);
+        document.body.removeChild(temp);
       }
       setNotice('URL copied to clipboard.', 'success');
     } catch (error) {
@@ -958,11 +689,10 @@
         selectItem(item.id);
         host.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else if (action === 'delete') {
-        const confirmDelete = window.confirm('Delete this URL? This cannot be undone.');
-        if (confirmDelete) {
+        if (window.confirm('Delete this URL? This cannot be undone.')) {
           deleteItem(id);
         }
-      } else if (action === 'copy-url') {
+      } else if (action === 'copy') {
         copyToClipboard(item.url);
         selectItem(item.id);
       }
@@ -982,9 +712,9 @@
     setNotice('');
     const payload = {
       url: els.urlField.value.trim(),
-      description: els.descriptionField.value.trim(),
       schedule: els.scheduleField.value.trim(),
-      returned_data: els.returnedField.value,
+      description: els.descriptionField.value.trim(),
+      returned_data: els.returnedField.value
     };
     if (!payload.url) {
       setNotice('Please provide a valid URL before saving.', 'warning');
@@ -993,9 +723,9 @@
     setLoading(true);
     try {
       if (state.activeId) {
-        const response = await request('PUT', `${restUrl}/${state.activeId}`, payload);
-        state.items = state.items.map((item) => (item.id === response.id ? response : item));
-        state.selectedId = response.id;
+        const updated = await request('PUT', restUrl + '/' + state.activeId, payload);
+        state.items = state.items.map((item) => (item.id === updated.id ? updated : item));
+        state.selectedId = updated.id;
         setNotice('URL updated.', 'success');
       } else {
         const created = await request('POST', restUrl, payload);
@@ -1014,72 +744,48 @@
       setLoading(false);
     }
   }
-
-  function handleReset() {
-    resetForm();
-    setNotice('');
-  }
-
   function wireEvents() {
-    if (els.scheduleField) {
-      els.scheduleField.addEventListener('input', updateScheduleHint);
-    }
-    if (els.form) {
-      els.form.addEventListener('submit', handleSubmit);
-    }
-    if (els.resetButton) {
-      els.resetButton.addEventListener('click', handleReset);
-    }
-    if (els.tableBody) {
-      els.tableBody.addEventListener('click', handleTableClick);
-    }
+    els.scheduleField.addEventListener('input', updateScheduleHint);
+    els.form.addEventListener('submit', handleSubmit);
+    els.resetButton.addEventListener('click', () => {
+      resetForm();
+      setNotice('');
+    });
+    els.tableBody.addEventListener('click', handleTableClick);
     els.actionNewButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
         resetForm();
         setNotice('');
       });
     });
-    if (els.detailEdit) {
-      els.detailEdit.addEventListener('click', () => {
-        const item = getSelectedItem();
-        if (item) {
-          populateForm(item);
-          selectItem(item.id);
-          host.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-    }
-    if (els.detailCopy) {
-      els.detailCopy.addEventListener('click', () => {
-        const item = getSelectedItem();
-        if (item) {
-          copyToClipboard(item.url);
-        }
-      });
-    }
-    if (els.previewToggle) {
-      els.previewToggle.addEventListener('click', () => togglePreview(true));
-    }
-    if (els.previewClose) {
-      els.previewClose.addEventListener('click', () => togglePreview(false));
-    }
-    if (els.returnedField) {
-      els.returnedField.addEventListener('input', () => {
-        if (!els.previewCard.hidden) {
-          updatePreviewContent();
-        }
-      });
-    }
+    els.detailEdit.addEventListener('click', () => {
+      const item = getSelectedItem();
+      if (item) {
+        populateForm(item);
+        selectItem(item.id);
+        host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+    els.detailCopy.addEventListener('click', () => {
+      const item = getSelectedItem();
+      if (item) {
+        copyToClipboard(item.url);
+      }
+    });
+    els.previewToggle.addEventListener('click', () => togglePreview(true));
+    els.previewClose.addEventListener('click', () => togglePreview(false));
+    els.returnedField.addEventListener('input', () => {
+      if (!els.previewCard.hidden) {
+        updatePreviewContent();
+      }
+    });
   }
 
   resetForm();
   wireEvents();
   fetchItems();
 
-  const tablerJs = document.createElement('script');
-  tablerJs.src = 'https://cdn.jsdelivr.net/npm/@tabler/[email protected]/dist/js/tabler.min.js';
-  shadow.appendChild(tablerJs);
+  const bootstrapJs = document.createElement('script');
+  bootstrapJs.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
+  shadow.appendChild(bootstrapJs);
 })();
-
-
-

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: axs4all - AI
- * Description: Manage crawl targets for AI-powered processing with a Tabler-based admin experience.
- * Version: 0.1.2
+ * Description: Manage crawl targets for AI-powered processing with a Bootstrap-based admin experience.
+ * Version: 0.2.1
  * Author: axs4all
  * Text Domain: a4a-ai
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 final class A4A_AI_Plugin {
-    const VERSION = '0.1.2';
+    const VERSION = '0.2.1';
     const SLUG = 'a4a-ai';
     const CPT = 'a4a_url';
 
@@ -98,31 +98,15 @@ final class A4A_AI_Plugin {
         $capability = 'manage_options';
         $callback = [$this, 'render_admin_app'];
 
-        $hook = null;
-        $parent_slug = $this->get_tabler_parent_slug();
-
-        if ($parent_slug) {
-            $hook = add_submenu_page(
-                $parent_slug,
-                __('axs4all - AI', 'a4a-ai'),
-                __('axs4all - AI', 'a4a-ai'),
-                $capability,
-                self::SLUG,
-                $callback
-            );
-        }
-
-        if (!$hook) {
-            $hook = add_menu_page(
-                __('axs4all - AI', 'a4a-ai'),
-                __('axs4all - AI', 'a4a-ai'),
-                $capability,
-                self::SLUG,
-                $callback,
-                'dashicons-art',
-                66
-            );
-        }
+        $hook = add_menu_page(
+            __('axs4all - AI', 'a4a-ai'),
+            __('axs4all - AI', 'a4a-ai'),
+            $capability,
+            self::SLUG,
+            $callback,
+            'dashicons-art',
+            66
+        );
 
         if ($hook) {
             $this->admin_hook = $hook;
@@ -130,46 +114,7 @@ final class A4A_AI_Plugin {
     }
 
     /**
-     * Attempts to detect an existing Tabler-based parent menu.
-     *
-     * @return string
-     */
-    private function get_tabler_parent_slug() {
-        $candidates = ['tabler-dashboard', 'tabler-admin'];
-
-        foreach ($candidates as $slug) {
-            if ($this->menu_exists($slug)) {
-                return $slug;
-            }
-        }
-
-        return '';
-    }
-
-    /**
-     * Checks whether a top-level admin menu with the supplied slug exists.
-     *
-     * @param string $slug
-     * @return bool
-     */
-    private function menu_exists($slug) {
-        global $menu;
-
-        if (!is_array($menu)) {
-            return false;
-        }
-
-        foreach ($menu as $item) {
-            if (isset($item[2]) && $item[2] === $slug) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Outputs the root element for the Tabler-driven SPA.
+     * Outputs the root element for the Bootstrap-powered SPA.
      */
     public function render_admin_app() {
         if (!current_user_can('manage_options')) {
