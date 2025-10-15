@@ -35,65 +35,6 @@
 
   injectStylesheet('https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css');
 
-  (function loadFontAwesome() {
-    const cdnHref = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
-    const cdnIntegrity = 'sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==';
-
-    const addStylesheet = (href, integrity, marker) => {
-      const link = injectStylesheet(href, integrity);
-      if (marker) {
-        link.dataset.fontAwesome = marker;
-      }
-      return link;
-    };
-
-    const useCdn = () => {
-      if (!shadow.querySelector('link[data-font-awesome="cdn"]')) {
-        addStylesheet(cdnHref, cdnIntegrity, 'cdn');
-      }
-    };
-
-    if (config.assetsUrl) {
-      let fallbackTriggered = false;
-      const useFallback = () => {
-        if (fallbackTriggered) {
-          return;
-        }
-        fallbackTriggered = true;
-        const localLink = shadow.querySelector('link[data-font-awesome="local"]');
-        if (localLink && localLink.parentNode) {
-          localLink.parentNode.removeChild(localLink);
-        }
-        console.warn('axs4all - AI: falling back to Font Awesome CDN.');
-        useCdn();
-      };
-
-      const localLink = addStylesheet(`${config.assetsUrl}fontawesome/css/all.min.css`, null, 'local');
-      localLink.addEventListener('error', useFallback, { once: true });
-
-      if (document.fonts && typeof document.fonts.check === 'function' && document.fonts.ready) {
-        document.fonts
-          .ready
-          .then(() => {
-            setTimeout(() => {
-              const hasClassic = document.fonts.check('1em "Font Awesome 6 Free"');
-              const hasBrands = document.fonts.check('1em "Font Awesome 6 Brands"');
-              if (!hasClassic && !hasBrands) {
-                useFallback();
-              }
-            }, 0);
-          })
-          .catch(() => {
-            // If the FontFaceSet API errors, try the CDN.
-            useFallback();
-          });
-      }
-      return;
-    }
-
-    useCdn();
-  })();
-
   const baseStyle = document.createElement('style');
   baseStyle.textContent = `
     :host { display: block; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
@@ -105,33 +46,36 @@
     .a4a-stat-card .icon-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
     .a4a-empty { padding: 3rem 1rem; text-align: center; }
     .a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .a4a-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
+    .a4a-icon svg { width: 1em; height: 1em; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .a4a-xml-preview { max-height: 220px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #f8f9fa; border-radius: 0.5rem; padding: 1rem; }
   `;
   shadow.appendChild(baseStyle);
 
   const ICONS = Object.assign(Object.create(null), {
-    plus: 'fa-solid fa-plus',
-    list: 'fa-solid fa-list-check',
-    clock: 'fa-solid fa-clock',
-    refresh: 'fa-solid fa-arrows-rotate',
-    robot: 'fa-solid fa-robot',
-    sparkles: 'fa-solid fa-wand-magic-sparkles',
-    pencil: 'fa-solid fa-pen-to-square',
-    clipboard: 'fa-solid fa-clipboard',
-    trash: 'fa-solid fa-trash',
-    link: 'fa-solid fa-link',
-    calendar: 'fa-solid fa-calendar-days',
-    save: 'fa-solid fa-floppy-disk',
-    eraser: 'fa-solid fa-eraser',
-    code: 'fa-solid fa-code',
-    close: 'fa-solid fa-xmark',
-    copy: 'fa-regular fa-copy'
+    plus: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`,
+    list: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M4 12h9"/><path d="M4 18h9"/><polyline points="15 8 17 10 21 6"/><polyline points="15 14 17 16 21 12"/></svg>`,
+    clock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l2.5 2.5"/></svg>`,
+    refresh: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 11a8 8 0 0 0-14.31-4.69L5 8"/><path d="M3 13a8 8 0 0 0 14.31 4.69L19 16"/><path d="M5 8h4V4"/><path d="M19 16h-4v4"/></svg>`,
+    robot: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M12 7V4"/><circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none"/><path d="M8 17h8"/></svg>`,
+    sparkles: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M5 15l.8 2.2L8 18l-2.2.8L5 21l-.8-2.2L2 18l2.2-.8z"/><path d="M19 12l.6 1.6L21 14l-1.4.4L19 16l-.6-1.6L17 14l1.4-.4z"/></svg>`,
+    pencil: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 20l3.6-.9 10-10a1.8 1.8 0 0 0-2.6-2.6l-10 10L4 20z"/><path d="M14.8 6.2l3 3"/></svg>`,
+    clipboard: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="6.5" y="6" width="11" height="14" rx="2"/><path d="M9 6V4h6v2"/><path d="M10 11h6"/><path d="M10 15h6"/></svg>`,
+    trash: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 7V5h6v2"/><path d="M8 7l1 12a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2l1-12"/></svg>`,
+    link: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 7H7a4 4 0 0 0 0 8h2"/><path d="M15 9h2a4 4 0 0 1 0 8h-2"/><path d="M9 12h6"/></svg>`,
+    calendar: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M4 11h16"/></svg>`,
+    save: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/></svg>`,
+    eraser: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 18l-2-2 9-9a2 2 0 0 1 2.8 0l3.2 3.2a2 2 0 0 1 0 2.8l-7 7H6"/><path d="M3 16h7"/></svg>`,
+    code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 7l-4 5 4 5"/><path d="M16 7l4 5-4 5"/></svg>`,
+    close: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M6 18L18 6"/></svg>`,
+    copy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="12" rx="2"/><path d="M5 13V7a2 2 0 0 1 2-2h6"/></svg>`,
+    circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`
   });
 
   function icon(name, extraClass = '') {
-    const base = ICONS[name] || 'fa-solid fa-circle';
-    const classes = `${base}${extraClass ? ' ' + extraClass : ''}`;
-    return `<i class="${classes}" aria-hidden="true"></i>`;
+    const svg = ICONS[name] || ICONS.circle;
+    const extra = extraClass ? ' ' + extraClass : '';
+    return `<span class="a4a-icon${extra}" aria-hidden="true">${svg}</span>`;
   }
 
   const markup = `
