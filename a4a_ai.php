@@ -2,7 +2,7 @@
 /**
  * Plugin Name: axs4all - AI
  * Description: Manage crawl targets for AI-powered processing with a Bootstrap-based admin experience.
- * Version: 0.2.7
+ * Version: 0.2.8
  * Author: axs4all
  * Text Domain: a4a-ai
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 final class A4A_AI_Plugin {
-    const VERSION = '0.2.7';
+    const VERSION = '0.2.8';
     const SLUG = 'a4a-ai';
     const CPT = 'a4a_url';
 
@@ -152,6 +152,7 @@ final class A4A_AI_Plugin {
                 'restUrl' => esc_url_raw(rest_url('a4a/v1/urls')),
                 'nonce' => wp_create_nonce('wp_rest'),
                 'assetsUrl' => plugin_dir_url(__FILE__) . 'assets/',
+                'version' => self::VERSION,
             ]
         );
 

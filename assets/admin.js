@@ -315,6 +315,7 @@
       updated: app.querySelector('#a4a-metric-updated'),
       aiReady: app.querySelector('#a4a-metric-ai-ready')
     },
+    brand: app.querySelector('.navbar-brand'),
     tableBody: app.querySelector('#a4a-table-body'),
     tableCard: app.querySelector('#a4a-table-card'),
     emptyState: app.querySelector('#a4a-empty-state'),
@@ -342,6 +343,11 @@
     previewContent: app.querySelector('#a4a-preview-content'),
     actionNewButtons: app.querySelectorAll('[data-action="new-url"]')
   };
+
+  if (els.brand) {
+    const versionLabel = typeof config.version === 'string' ? config.version.trim() : '';
+    els.brand.textContent = versionLabel ? `axs4all Intelligence - v.${versionLabel}` : 'axs4all Intelligence';
+  }
 
   let tooltipInstances = [];
 
