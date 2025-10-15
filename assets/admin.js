@@ -20,6 +20,13 @@
   bootstrapCss.referrerPolicy = "no-referrer";
   shadow.appendChild(bootstrapCss);
 
+  const fontAwesomeCss = document.createElement("link");
+  fontAwesomeCss.rel = "stylesheet";
+  fontAwesomeCss.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css";
+  fontAwesomeCss.crossOrigin = "anonymous";
+  fontAwesomeCss.referrerPolicy = "no-referrer";
+  shadow.appendChild(fontAwesomeCss);
+
   const baseStyle = document.createElement("style");
   baseStyle.textContent = [
     ":host { display: block; font-family: \"Segoe UI\", system-ui, -apple-system, sans-serif; }",
@@ -31,34 +38,33 @@
     ".a4a-stat-card { border: none; border-radius: 1rem; box-shadow: 0 0.35rem 1rem rgba(33,37,41,0.08); }",
     ".a4a-stat-card .icon-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }",
     ".a4a-empty { padding: 3rem 1rem; text-align: center; }",
-    ".a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }",
-    ".a4a-icon svg { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; fill: currentColor; }"
+    ".a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }"
   ].join("");
   shadow.appendChild(baseStyle);
 
   const ICONS = {
-    plus: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2H9v4a1 1 0 0 1-2 0V9H3a1 1 0 0 1 0-2h4V3a1 1 0 0 1 1-1z"/></svg>',
-    list: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="2.5" height="2.5" rx="0.6"/><rect x="6" y="3.5" width="8" height="1.5" rx="0.5"/><rect x="2" y="7" width="2.5" height="2.5" rx="0.6"/><rect x="6" y="7.5" width="8" height="1.5" rx="0.5"/><rect x="2" y="11" width="2.5" height="2.5" rx="0.6"/><rect x="6" y="11.5" width="8" height="1.5" rx="0.5"/></svg>',
-    clock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1" fill="none"/><path d="M8 4.5a.5.5 0 0 1 .5.5v3.1l2 1.2a.5.5 0 0 1-.5.86l-2.3-1.36A.75.75 0 0 1 7 8.2V5a.5.5 0 0 1 .5-.5z"/></svg>',
-    refresh: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 1 1-3.53 8.53.75.75 0 0 1 1.06-1.06A3.5 3.5 0 1 0 8 4.5h-.69a.5.5 0 0 1-.38-.83l1.7-1.92a.5.5 0 0 1 .74 0l1.7 1.92a.5.5 0 0 1-.38.83H8z"/></svg>',
-    robot: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="5" width="10" height="8" rx="1.5"/><rect x="4" y="6.5" width="3" height="3" rx="1"/><rect x="9" y="6.5" width="3" height="3" rx="1"/><rect x="6.25" y="10.5" width="3.5" height="1.2" rx="0.6"/><path d="M7.25 2.5a.75.75 0 0 1 1.5 0V4h-1.5z"/></svg>',
-    sparkles: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="m7.5 2.5 1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><path d="m12.5 9.5.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7z"/><path d="m2.3 8 .5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg>',
-    pencil: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.64 2.64a1.5 1.5 0 0 1 0 2.12l-7.2 7.2-2.94.82.83-2.93 7.2-7.2a1.5 1.5 0 0 1 2.12 0z"/><path d="M11.23 1.23 12.77 2.77 11.7 3.83 10.16 2.3z"/></svg>',
-    clipboard: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="8" height="11" rx="1.5"/><rect x="5.5" y="2" width="5" height="2.5" rx="0.75"/><path d="M6 6.5h4.5a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1zm0 3h3.5a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1z"/></svg>',
-    trash: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5a.5.5 0 0 1 .5.5v1H14a.5.5 0 0 1 0 1h-.7l-.6 9.1A1.5 1.5 0 0 1 11.2 14H4.8a1.5 1.5 0 0 1-1.5-1.4L2.7 4H2a.5.5 0 0 1 0-1h3v-1a.5.5 0 0 1 .5-.5zm1.5 3a.5.5 0 0 0-1 0v6.5a.5.5 0 0 0 1 0zm3.5 0a.5.5 0 0 0-1 0v6.5a.5.5 0 0 0 1 0z"/></svg>',
-    link: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.75 3.5a2.75 2.75 0 0 1 1.95.81l.52.52a.75.75 0 1 1-1.06 1.06l-.52-.52a1.25 1.25 0 1 0-1.77 1.77l1.21 1.21a1.25 1.25 0 0 0 1.77 0 .75.75 0 1 1 1.06 1.06 2.75 2.75 0 0 1-3.89 0L4.71 9.2a2.75 2.75 0 0 1 3.89-3.89l.12.12-.53-.53a1.25 1.25 0 0 0-1.94 1.55.75.75 0 1 1-1.16.95 2.75 2.75 0 0 1 2.46-4.9z"/><path d="M9.25 12.5a2.75 2.75 0 0 1-1.95-.81l-.52-.52a.75.75 0 1 1 1.06-1.06l.52.52a1.25 1.25 0 0 0 1.77-1.77L8.92 7.65a1.25 1.25 0 0 0-1.77 0 .75.75 0 0 1-1.06-1.06 2.75 2.75 0 0 1 3.89 0l1.21 1.21a2.75 2.75 0 0 1-3.89 3.89l-.12-.12.53.53a1.25 1.25 0 0 0 1.94-1.55.75.75 0 1 1 1.16-.95 2.75 2.75 0 0 1-2.46 4.9z"/></svg>',
-    calendar: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 2a.75.75 0 0 1 1.5 0v1H5zM9.5 2a.75.75 0 0 1 1.5 0v1h-1.5zM3.5 5.5h9a.5.5 0 0 1 .5.5v1H3v-1a.5.5 0 0 1 .5-.5z"/><rect x="4.5" y="8" width="2" height="2" rx="0.4"/><rect x="7.5" y="8" width="2" height="2" rx="0.4"/><rect x="10.5" y="8" width="2" height="2" rx="0.4"/></svg>',
-    save: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2h7.38a1.5 1.5 0 0 1 1.06.44l1.62 1.62A1.5 1.5 0 0 1 14 5.12V12.5A1.5 1.5 0 0 1 12.5 14h-9A1.5 1.5 0 0 1 2 12.5v-9A1.5 1.5 0 0 1 3.5 2zm1 1.5v2a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-2zM4.5 8.5v3.5h7v-3.5z"/></svg>',
-    eraser: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="m6.5 2.5 7 7a1 1 0 0 1 0 1.4l-3.6 3.6a1 1 0 0 1-.7.3H4.1a1 1 0 0 1-.7-.3L1.5 11.9a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0z"/><path d="M12.9 13.5H9.2a1 1 0 0 0-.7.3l-.5.5h4.9a.5.5 0 1 0 0-1z" opacity="0.5"/></svg>',
-    code: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5a.75.75 0 0 1 .2 1.03L3.12 8l2.58 3.47a.75.75 0 1 1-1.23.9L1.94 8.47a1 1 0 0 1 0-.94l2.53-3.9a.75.75 0 0 1 1.03-.2zm5 0a.75.75 0 0 0-.2 1.03L12.88 8l-2.58 3.47a.75.75 0 1 0 1.23.9l2.53-3.9a1 1 0 0 0 0-.94l-2.53-3.9a.75.75 0 0 0-1.03-.2z"/></svg>',
-    close: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.22 4.22a.75.75 0 0 1 1.06 0L8 6.94l2.72-2.72a.75.75 0 1 1 1.06 1.06L9.06 8l2.72 2.72a.75.75 0 1 1-1.06 1.06L8 9.06l-2.72 2.72a.75.75 0 0 1-1.06-1.06L6.94 8 4.22 5.28a.75.75 0 0 1 0-1.06z"/></svg>',
-    copy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8" height="9" rx="1.2"/><rect x="3" y="2" width="8" height="9" rx="1.2"/></svg>'
+    plus: 'fa-solid fa-plus',
+    list: 'fa-solid fa-list-check',
+    clock: 'fa-solid fa-clock',
+    refresh: 'fa-solid fa-arrows-rotate',
+    robot: 'fa-solid fa-robot',
+    sparkles: 'fa-solid fa-wand-magic-sparkles',
+    pencil: 'fa-solid fa-pen-to-square',
+    clipboard: 'fa-solid fa-clipboard',
+    trash: 'fa-solid fa-trash',
+    link: 'fa-solid fa-link',
+    calendar: 'fa-solid fa-calendar-days',
+    save: 'fa-solid fa-floppy-disk',
+    eraser: 'fa-solid fa-eraser',
+    code: 'fa-solid fa-code',
+    close: 'fa-solid fa-xmark',
+    copy: 'fa-regular fa-copy'
   };
 
-  function icon(name, wrapperClass) {
-    const svg = ICONS[name] || '';
-    const classes = wrapperClass ? 'a4a-icon ' + wrapperClass : 'a4a-icon';
-    return '<span class="' + classes + '">' + svg + '</span>';
+  function icon(name, extraClass) {
+    const classes = ICONS[name] || 'fa-solid fa-circle';
+    const suffix = extraClass ? ' ' + extraClass : '';
+    return '<i class="' + classes + suffix + '"></i>';
   }
 
   const app = document.createElement("div");

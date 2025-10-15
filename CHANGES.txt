@@ -1,1 +1,5 @@
 We should add a "Run now" function for each URL, that overrides the schedule.  
+
+When editing or creating an URL, the fields containing the URL, Description and the Returned Data should be background white with a border.
+
+Maybe we should rethink the URL thingy. What we actually want is that we create, edit etc. a Client where we under that Client can have several URLs that should be crawled. Each URL should have its own schedule.
