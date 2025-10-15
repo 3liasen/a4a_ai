@@ -23,6 +23,7 @@
   const fontAwesomeCss = document.createElement("link");
   fontAwesomeCss.rel = "stylesheet";
   fontAwesomeCss.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css";
+  fontAwesomeCss.integrity = "sha512-jQFNUPYjZ6eKeosFVJeFt3uCiL6A+O9rDNr/g0x3hCwewJYHZVu8dxPMH6b9Y8u61QY4VvZ8a2S7k+Jf1C9v0g==";
   fontAwesomeCss.crossOrigin = "anonymous";
   fontAwesomeCss.referrerPolicy = "no-referrer";
   shadow.appendChild(fontAwesomeCss);
@@ -42,7 +43,7 @@
   ].join("");
   shadow.appendChild(baseStyle);
 
-  const ICONS = {
+  const ICONS = Object.assign(Object.create(null), {
     plus: 'fa-solid fa-plus',
     list: 'fa-solid fa-list-check',
     clock: 'fa-solid fa-clock',
@@ -59,12 +60,12 @@
     code: 'fa-solid fa-code',
     close: 'fa-solid fa-xmark',
     copy: 'fa-regular fa-copy'
-  };
+  });
 
   function icon(name, extraClass) {
     const classes = ICONS[name] || 'fa-solid fa-circle';
     const suffix = extraClass ? ' ' + extraClass : '';
-    return '<i class="' + classes + suffix + '"></i>';
+    return '<i class="' + classes + suffix + '" aria-hidden="true"></i>';
   }
 
   const app = document.createElement("div");
@@ -278,7 +279,7 @@
     activeId: null,
     selectedId: null,
     loading: false
-  };
+  });
 
   const els = {
     clock: app.querySelector('#a4a-clock'),
@@ -315,7 +316,7 @@
     previewCard: app.querySelector('#a4a-preview-card'),
     previewContent: app.querySelector('#a4a-preview-content'),
     actionNewButtons: app.querySelectorAll('[data-action="new-url"]')
-  };
+  });
 
   let tooltipInstances = [];
 
@@ -376,16 +377,16 @@
 
   function formatModified(gmtString) {
     if (!gmtString) {
-      return { relative: 'Never', absolute: '--' };
+      return { relative: 'Never', absolute: '--' });
     }
     const date = new Date(gmtString + 'Z');
     if (Number.isNaN(date.getTime())) {
-      return { relative: 'Never', absolute: '--' };
+      return { relative: 'Never', absolute: '--' });
     }
     return {
       relative: timeAgo(date),
       absolute: date.toLocaleString()
-    };
+    });
   }
 
   function summarize(value, length) {
@@ -626,7 +627,7 @@
       headers: {
         'X-WP-Nonce': nonce
       }
-    };
+    });
     if (payload !== undefined) {
       options.headers['Content-Type'] = 'application/json';
       options.body = JSON.stringify(payload);
@@ -764,7 +765,7 @@
       schedule: els.scheduleField.value.trim(),
       description: els.descriptionField.value.trim(),
       returned_data: els.returnedField.value
-    };
+    });
     if (!payload.url) {
       setNotice('Please provide a valid URL before saving.', 'warning');
       return;
