@@ -30,17 +30,69 @@
       link.referrerPolicy = 'no-referrer';
     }
     shadow.appendChild(link);
+    return link;
   }
 
   injectStylesheet('https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css');
 
-  const fontAwesomeHref = config.assetsUrl
-    ? `${config.assetsUrl}fontawesome/css/all.min.css`
-    : 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
-  const fontAwesomeIntegrity = config.assetsUrl
-    ? null
-    : 'sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==';
-  injectStylesheet(fontAwesomeHref, fontAwesomeIntegrity);
+  (function loadFontAwesome() {
+    const cdnHref = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
+    const cdnIntegrity = 'sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==';
+
+    const addStylesheet = (href, integrity, marker) => {
+      const link = injectStylesheet(href, integrity);
+      if (marker) {
+        link.dataset.fontAwesome = marker;
+      }
+      return link;
+    };
+
+    const useCdn = () => {
+      if (!shadow.querySelector('link[data-font-awesome="cdn"]')) {
+        addStylesheet(cdnHref, cdnIntegrity, 'cdn');
+      }
+    };
+
+    if (config.assetsUrl) {
+      let fallbackTriggered = false;
+      const useFallback = () => {
+        if (fallbackTriggered) {
+          return;
+        }
+        fallbackTriggered = true;
+        const localLink = shadow.querySelector('link[data-font-awesome="local"]');
+        if (localLink && localLink.parentNode) {
+          localLink.parentNode.removeChild(localLink);
+        }
+        console.warn('axs4all - AI: falling back to Font Awesome CDN.');
+        useCdn();
+      };
+
+      const localLink = addStylesheet(`${config.assetsUrl}fontawesome/css/all.min.css`, null, 'local');
+      localLink.addEventListener('error', useFallback, { once: true });
+
+      if (document.fonts && typeof document.fonts.check === 'function' && document.fonts.ready) {
+        document.fonts
+          .ready
+          .then(() => {
+            setTimeout(() => {
+              const hasClassic = document.fonts.check('1em "Font Awesome 6 Free"');
+              const hasBrands = document.fonts.check('1em "Font Awesome 6 Brands"');
+              if (!hasClassic && !hasBrands) {
+                useFallback();
+              }
+            }, 0);
+          })
+          .catch(() => {
+            // If the FontFaceSet API errors, try the CDN.
+            useFallback();
+          });
+      }
+      return;
+    }
+
+    useCdn();
+  })();
 
   const baseStyle = document.createElement('style');
   baseStyle.textContent = `
@@ -366,7 +418,11 @@
       return;
     }
     const now = new Date();
-    els.clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    els.clock.textContent = now.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   }
   updateClock();
   setInterval(updateClock, 60000);
@@ -414,7 +470,16 @@
     if (Number.isNaN(date.getTime())) {
       return { relative: 'Never', absolute: '--' };
     }
-    return { relative: timeAgo(date), absolute: date.toLocaleString() };
+    const options = {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
+    return { relative: timeAgo(date), absolute: date.toLocaleString(undefined, options) };
   }
 
   function summarize(value, length = 80) {
@@ -475,10 +540,12 @@
     const value = els.scheduleField.value.trim();
     if (value) {
       els.scheduleHint.textContent = 'Scheduled';
-      els.scheduleHint.className = 'badge text-bg-success';
+      els.scheduleHint.className =
+        'badge bg-success-subtle text-success border border-success-subtle';
     } else {
-      els.scheduleHint.textContent = 'Draft';
-      els.scheduleHint.className = 'badge text-bg-secondary';
+      els.scheduleHint.textContent = 'Ad hoc';
+      els.scheduleHint.className =
+        'badge bg-danger-subtle text-danger border border-danger-subtle';
     }
   }
 
@@ -527,8 +594,10 @@
         const description = summarize(item.description, 90);
         const schedule = (item.schedule || '').trim();
         const badge = schedule
-          ? `<span class="badge text-bg-primary">${escapeHtml(schedule)}</span>`
-          : '<span class="badge text-bg-secondary">Ad hoc</span>';
+          ? `<span class="badge bg-success-subtle text-success border border-success-subtle">${escapeHtml(
+              schedule
+            )}</span>`
+          : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Ad hoc</span>';
         const selectedClass = state.selectedId === item.id ? 'table-active' : '';
         return `
           <tr class="${selectedClass}" data-row-id="${item.id}">
@@ -579,8 +648,10 @@
 
     const schedule = (item.schedule || '').trim();
     const badge = schedule
-      ? `<span class="badge text-bg-primary">${escapeHtml(schedule)}</span>`
-      : '<span class="badge text-bg-secondary">Ad hoc</span>';
+      ? `<span class="badge bg-success-subtle text-success border border-success-subtle">${escapeHtml(
+          schedule
+        )}</span>`
+      : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Ad hoc</span>';
     const times = formatModified(item.modified_gmt);
     const xmlContent = (item.returned_data || '').trim()
       ? escapeHtml(item.returned_data)
@@ -632,7 +703,7 @@
         <li class="list-group-item">
           <div class="d-flex justify-content-between align-items-start">
             <div>
-              <div class="fw-semibold text-break">${escapeHtml(item.schedule)}</div>
+              <div class="fw-semibold text-success text-break">${escapeHtml(item.schedule)}</div>
               <div class="text-muted small">${escapeHtml(item.url)}</div>
             </div>
             <span class="badge text-bg-light text-muted">${escapeHtml(times.relative)}</span>
