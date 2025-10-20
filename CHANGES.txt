@@ -1,4 +1,6 @@
-Maybe we should rethink the URL thingy. What we actually want is that we create, edit etc. a Client where we under that Client can have several URLs that should be crawled. Each URL should have its own schedule.
+Maybe we should rethink the URL thingy. What we actually want is that we create, edit etc. a Client where we under that Client can have several URLs that should be crawled. Each URL should have its own schedule, AI prompt, result etc.
+
+We want to prepare the plugin for multiple sub menu items under the main menu item. So we can have a "Clients" sub menu item, a "Categories" sub menu item and so on.
 
 We should add a "Run now" function for each URL, that overrides the schedule.  
 

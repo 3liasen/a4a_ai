@@ -2,7 +2,7 @@
 /**
  * Plugin Name: axs4all - AI
  * Description: Manage crawl targets for AI-powered processing with a Bootstrap-based admin experience.
- * Version: 0.3.1
+ * Version: 0.3.2
  * Author: axs4all
  * Text Domain: a4a-ai
  */
