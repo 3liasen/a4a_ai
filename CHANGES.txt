@@ -1,6 +1,12 @@
-## 0.4.0
-- Introduced dedicated Clients and Categories admin sub pages to prepare for multi-entity management.
-- Added client-level REST endpoints with nested URL support, including immediate "Run now" overrides.
-- Expanded URL metadata to capture schedule, prompt, description, and returned data per client URL.
-- Delivered a refreshed admin SPA to manage clients, URLs, and category option sets, with highlighted URL editing fields.
-- Implemented category management with unlimited option lists.
+﻿Maybe we should rethink the URL thingy. What we actually want is that we create, edit etc. a Client where we under that Client can have several URLs that should be crawled. Each URL should have its own schedule, AI prompt, result etc.
+
+We want to prepare the plugin for multiple sub menu items under the main menu item. So we can have a "Clients" sub menu item, a "Categories" sub menu item and so on.
+
+We should add a "Run now" function for each URL, that overrides the schedule.  
+
+When editing or creating an URL, the fields containing the URL, Description and the Returned Data should be background white with a border.
+
+We need a section in the plugin for Categories. Example: A category (which we can create and / or edit) could be "Handicap Toilet". That category can have two options: Accessible and Not Accessible.
+
+The options are created by us and the number of options can vary and be unlimited. .
+
