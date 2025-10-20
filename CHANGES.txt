@@ -8,5 +8,5 @@ When editing or creating an URL, the fields containing the URL, Description and 
 
 We need a section in the plugin for Categories. Example: A category (which we can create and / or edit) could be "Handicap Toilet". That category can have two options: Accessible and Not Accessible.
 
-The options are created by us and the number of options can vary and be unlimited. 
+The options are created by us and the number of options can vary and be unlimited. .
 
