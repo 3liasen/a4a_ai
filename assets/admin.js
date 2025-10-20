@@ -98,6 +98,1070 @@
     return `<span class="a4a-icon${extra}" aria-hidden="true">${svg}</span>`;
   }
 
+  async function request(method, url, payload) {
+    const options = {
+      method,
+      headers: { 'X-WP-Nonce': config.nonce }
+    };
+    if (payload !== undefined) {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(payload);
+    }
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      let message = `Request failed with status ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.message) {
+          message = errorData.message;
+        }
+      } catch (error) {
+        // ignore parsing issues
+      }
+      throw new Error(message);
+    }
+    return response.status === 204 ? null : response.json();
+  }
+
+  const defaultView = String(
+    (host.getAttribute('data-default-view') || config.defaultView || 'urls')
+  ).toLowerCase();
+
+  if (defaultView === 'clients') {
+    initClients();
+    return;
+  }
+
+  if (defaultView === 'categories') {
+    initCategories();
+    return;
+  }
+
+  function initClients() {
+    const baseClientsUrl = config.clientsRestUrl ? config.clientsRestUrl.replace(/\/$/, '') : '';
+    const baseUrlsUrl = config.restUrl ? config.restUrl.replace(/\/$/, '') : '';
+
+    if (!baseClientsUrl) {
+      host.textContent = 'Clients endpoint not available.';
+      return;
+    }
+
+    const markup = `
+      <div class="bg-light min-vh-100">
+        <div class="container py-4">
+          <div id="a4a-clients-notice" class="alert d-none" role="alert"></div>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <h1 class="h3 mb-0">Clients</h1>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary" type="button" data-action="refresh">${icon('refresh', 'me-1')}Refresh</button>
+              <button class="btn btn-primary" type="button" data-action="new">${icon('plus', 'me-1')}New Client</button>
+            </div>
+          </div>
+          <div class="card mb-4">
+            <div class="card-body">
+              <label class="form-label" for="a4a-client-select">Select client</label>
+              <select class="form-select mb-3" id="a4a-client-select"></select>
+              <form id="a4a-client-form" class="vstack gap-3">
+                <input type="hidden" id="a4a-client-id" />
+                <div>
+                  <label class="form-label" for="a4a-client-name">Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="a4a-client-name" placeholder="Client name" required />
+                </div>
+                <div>
+                  <label class="form-label" for="a4a-client-notes">Notes</label>
+                  <textarea class="form-control" id="a4a-client-notes" rows="3" placeholder="Optional notes, goals, or contacts"></textarea>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="submit" class="btn btn-primary" id="a4a-client-save">${icon('save', 'me-1')}Save Client</button>
+                  <button type="button" class="btn btn-outline-secondary" id="a4a-client-reset">${icon('eraser', 'me-1')}Reset</button>
+                  <button type="button" class="btn btn-outline-danger ms-auto d-none" id="a4a-client-delete">${icon('trash', 'me-1')}Delete</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0">Client URLs</h2>
+                <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-client-url-new">${icon('plus', 'me-1')}New URL</button>
+              </div>
+              <div class="table-responsive mb-3">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>URL</th>
+                      <th style="width: 140px;">Schedule</th>
+                      <th style="width: 160px;">Updated</th>
+                      <th class="text-end" style="width: 170px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="a4a-client-urls-body">
+                    <tr><td colspan="4" class="text-center text-muted py-3">Select a client to view URLs.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <form id="a4a-client-url-form" class="row g-3">
+                <input type="hidden" id="a4a-client-url-id" />
+                <div class="col-12">
+                  <label class="form-label" for="a4a-client-url">Target URL <span class="text-danger">*</span></label>
+                  <input type="url" class="form-control" id="a4a-client-url" required placeholder="https://example.com/page" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="a4a-client-url-schedule">Schedule</label>
+                  <input type="text" class="form-control" id="a4a-client-url-schedule" placeholder="e.g. Weekly" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="a4a-client-url-description">Description</label>
+                  <input type="text" class="form-control" id="a4a-client-url-description" placeholder="Optional short note" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="a4a-client-url-prompt">AI Prompt</label>
+                  <textarea class="form-control" id="a4a-client-url-prompt" rows="3" placeholder="Optional AI instructions"></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="a4a-client-url-returned">Returned Data (XML)</label>
+                  <textarea class="form-control" id="a4a-client-url-returned" rows="4" placeholder="<results>...</results>"></textarea>
+                </div>
+                <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                  <button type="button" class="btn btn-outline-secondary" id="a4a-client-url-reset">${icon('eraser')}</button>
+                  <button type="button" class="btn btn-outline-danger d-none" id="a4a-client-url-delete">${icon('trash')}</button>
+                  <button type="button" class="btn btn-outline-success d-none" id="a4a-client-url-run">${icon('refresh')}</button>
+                  <button type="submit" class="btn btn-primary" id="a4a-client-url-save">${icon('save', 'me-1')}Save URL</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const app = document.createElement('div');
+    app.innerHTML = markup;
+    shadow.appendChild(app);
+
+    const els = {
+      notice: app.querySelector('#a4a-clients-notice'),
+      select: app.querySelector('#a4a-client-select'),
+      refresh: app.querySelector('[data-action="refresh"]'),
+      newClient: app.querySelector('[data-action="new"]'),
+      clientForm: app.querySelector('#a4a-client-form'),
+      clientId: app.querySelector('#a4a-client-id'),
+      clientName: app.querySelector('#a4a-client-name'),
+      clientNotes: app.querySelector('#a4a-client-notes'),
+      clientSave: app.querySelector('#a4a-client-save'),
+      clientReset: app.querySelector('#a4a-client-reset'),
+      clientDelete: app.querySelector('#a4a-client-delete'),
+      urlsBody: app.querySelector('#a4a-client-urls-body'),
+      urlForm: app.querySelector('#a4a-client-url-form'),
+      urlId: app.querySelector('#a4a-client-url-id'),
+      urlInput: app.querySelector('#a4a-client-url'),
+      urlSchedule: app.querySelector('#a4a-client-url-schedule'),
+      urlDescription: app.querySelector('#a4a-client-url-description'),
+      urlPrompt: app.querySelector('#a4a-client-url-prompt'),
+      urlReturned: app.querySelector('#a4a-client-url-returned'),
+      urlReset: app.querySelector('#a4a-client-url-reset'),
+      urlDelete: app.querySelector('#a4a-client-url-delete'),
+      urlRun: app.querySelector('#a4a-client-url-run'),
+      urlSave: app.querySelector('#a4a-client-url-save'),
+      urlNew: app.querySelector('#a4a-client-url-new')
+    };
+
+    const state = {
+      clients: [],
+      selectedId: null,
+      urlEditingId: null,
+      loading: false
+    };
+
+    function setNotice(message, type = 'info') {
+      if (!els.notice) {
+        return;
+      }
+      if (!message) {
+        els.notice.classList.add('d-none');
+        els.notice.textContent = '';
+        return;
+      }
+      const typeClass = type ? `alert-${type}` : 'alert-info';
+      els.notice.className = `alert ${typeClass}`;
+      els.notice.textContent = message;
+      els.notice.classList.remove('d-none');
+    }
+
+    function setBusy(isBusy) {
+      if (!app.firstElementChild) {
+        return;
+      }
+      app.firstElementChild.classList.toggle('a4a-busy', Boolean(isBusy));
+    }
+
+    function getSelectedClient() {
+      if (!state.selectedId) {
+        return null;
+      }
+      return state.clients.find((client) => client && client.id === state.selectedId) || null;
+    }
+
+    function renderClientSelect() {
+      if (!els.select) {
+        return;
+      }
+      if (!state.clients.length) {
+        els.select.innerHTML = '<option value="">No clients yet</option>';
+        els.select.value = '';
+        return;
+      }
+      const options = ['<option value="">— Select —</option>'];
+      state.clients.forEach((client) => {
+        if (!client) {
+          return;
+        }
+        const label = escapeHtml(client.name || `Client #${client.id}`);
+        const selectedAttr = client.id === state.selectedId ? ' selected' : '';
+        options.push(`<option value="${client.id}"${selectedAttr}>${label}</option>`);
+      });
+      els.select.innerHTML = options.join('');
+      if (state.selectedId) {
+        els.select.value = String(state.selectedId);
+      } else {
+        els.select.value = '';
+      }
+    }
+
+    function resetClientForm() {
+      if (els.clientId) {
+        els.clientId.value = '';
+      }
+      if (els.clientName) {
+        els.clientName.value = '';
+      }
+      if (els.clientNotes) {
+        els.clientNotes.value = '';
+      }
+      if (els.clientDelete) {
+        els.clientDelete.classList.add('d-none');
+      }
+    }
+
+    function populateClientForm(client) {
+      if (!client) {
+        resetClientForm();
+        return;
+      }
+      if (els.clientId) {
+        els.clientId.value = client.id;
+      }
+      if (els.clientName) {
+        els.clientName.value = client.name || '';
+      }
+      if (els.clientNotes) {
+        els.clientNotes.value = client.notes || '';
+      }
+      if (els.clientDelete) {
+        els.clientDelete.classList.remove('d-none');
+      }
+    }
+
+    function renderClientForm() {
+      const client = getSelectedClient();
+      if (client) {
+        populateClientForm(client);
+      } else {
+        resetClientForm();
+      }
+    }
+
+    function toggleUrlForm(disabled) {
+      if (!els.urlForm) {
+        return;
+      }
+      const controls = els.urlForm.querySelectorAll('input, textarea, button');
+      controls.forEach((control) => {
+        if (!control) {
+          return;
+        }
+        if (control === els.urlDelete || control === els.urlRun) {
+          control.disabled = Boolean(disabled) || control.classList.contains('d-none');
+        } else {
+          control.disabled = Boolean(disabled);
+        }
+      });
+      if (els.urlNew) {
+        els.urlNew.disabled = Boolean(disabled);
+      }
+      els.urlForm.classList.toggle('opacity-50', Boolean(disabled));
+    }
+
+    function resetUrlForm() {
+      state.urlEditingId = null;
+      if (els.urlId) {
+        els.urlId.value = '';
+      }
+      if (els.urlInput) {
+        els.urlInput.value = '';
+      }
+      if (els.urlSchedule) {
+        els.urlSchedule.value = '';
+      }
+      if (els.urlDescription) {
+        els.urlDescription.value = '';
+      }
+      if (els.urlPrompt) {
+        els.urlPrompt.value = '';
+      }
+      if (els.urlReturned) {
+        els.urlReturned.value = '';
+      }
+      if (els.urlDelete) {
+        els.urlDelete.classList.add('d-none');
+      }
+      if (els.urlRun) {
+        els.urlRun.classList.add('d-none');
+      }
+    }
+
+    function populateUrlForm(url) {
+      state.urlEditingId = url.id;
+      if (els.urlId) {
+        els.urlId.value = url.id;
+      }
+      if (els.urlInput) {
+        els.urlInput.value = url.url || '';
+      }
+      if (els.urlSchedule) {
+        els.urlSchedule.value = url.schedule || '';
+      }
+      if (els.urlDescription) {
+        els.urlDescription.value = url.description || '';
+      }
+      if (els.urlPrompt) {
+        els.urlPrompt.value = url.prompt || '';
+      }
+      if (els.urlReturned) {
+        els.urlReturned.value = url.returned_data || '';
+      }
+      if (els.urlDelete) {
+        els.urlDelete.classList.remove('d-none');
+      }
+      if (els.urlRun) {
+        els.urlRun.classList.remove('d-none');
+      }
+    }
+
+    function renderClientUrls() {
+      if (!els.urlsBody) {
+        return;
+      }
+      const client = getSelectedClient();
+      if (!client) {
+        els.urlsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Select a client to view URLs.</td></tr>';
+        toggleUrlForm(true);
+        resetUrlForm();
+        return;
+      }
+      const urls = Array.isArray(client.urls) ? client.urls : [];
+      if (!urls.length) {
+        els.urlsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No URLs yet. Use the form below to add one.</td></tr>';
+      } else {
+        const rows = urls
+          .map((url) => {
+            const times = formatModified(url.modified_gmt);
+            const relative = times.relative ? escapeHtml(times.relative) : '—';
+            const absolute = times.absolute ? `<div class="text-muted small">${escapeHtml(times.absolute)}</div>` : '';
+            const schedule = (url.schedule || '').trim() || '—';
+            return `
+              <tr data-url-id="${url.id}">
+                <td class="text-break"><a href="${escapeHtml(url.url || '#')}" target="_blank" rel="noopener noreferrer">${escapeHtml(url.url || '(no URL)')}</a></td>
+                <td>${escapeHtml(schedule)}</td>
+                <td><div class="small fw-semibold">${relative}</div>${absolute}</td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-success" data-action="run" title="Run now">${icon('refresh')}</button>
+                    <button type="button" class="btn btn-outline-primary" data-action="edit" title="Edit">${icon('pencil')}</button>
+                    <button type="button" class="btn btn-outline-danger" data-action="delete" title="Delete">${icon('trash')}</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+        els.urlsBody.innerHTML = rows;
+      }
+      toggleUrlForm(false);
+    }
+
+    async function fetchClients() {
+      setBusy(true);
+      try {
+        const response = await request('GET', `${baseClientsUrl}?with_urls=1`);
+        state.clients = Array.isArray(response) ? response : [];
+        if (state.clients.length) {
+          const exists = state.selectedId && state.clients.some((client) => client && client.id === state.selectedId);
+          if (!exists) {
+            state.selectedId = state.clients[0].id;
+          }
+        } else {
+          state.selectedId = null;
+        }
+        renderClientSelect();
+        renderClientForm();
+        renderClientUrls();
+        setNotice('', 'info');
+      } catch (error) {
+        console.error(error);
+        state.clients = [];
+        state.selectedId = null;
+        renderClientSelect();
+        renderClientForm();
+        renderClientUrls();
+        setNotice(error.message || 'Failed to load clients.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function handleClientSubmit(event) {
+      event.preventDefault();
+      const name = els.clientName ? els.clientName.value.trim() : '';
+      if (!name) {
+        setNotice('Please provide a client name.', 'warning');
+        if (els.clientName) {
+          els.clientName.focus();
+        }
+        return;
+      }
+      const payload = {
+        name,
+        notes: els.clientNotes ? els.clientNotes.value.trim() : ''
+      };
+      setBusy(true);
+      try {
+        const idValue = els.clientId ? parseInt(els.clientId.value, 10) : 0;
+        if (idValue) {
+          await request('PUT', `${baseClientsUrl}/${idValue}`, payload);
+          state.selectedId = idValue;
+          setNotice('Client updated.', 'success');
+        } else {
+          const created = await request('POST', baseClientsUrl, payload);
+          if (created && created.id) {
+            state.selectedId = created.id;
+          }
+          setNotice('Client created.', 'success');
+        }
+        await fetchClients();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to save client.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function handleClientDelete() {
+      const idValue = els.clientId ? parseInt(els.clientId.value, 10) : 0;
+      if (!idValue) {
+        return;
+      }
+      if (!window.confirm('Delete this client and all associated URLs? This cannot be undone.')) {
+        return;
+      }
+      setBusy(true);
+      try {
+        await request('DELETE', `${baseClientsUrl}/${idValue}`);
+        state.selectedId = null;
+        resetClientForm();
+        resetUrlForm();
+        setNotice('Client deleted.', 'info');
+        await fetchClients();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to delete client.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function handleNewClient() {
+      state.selectedId = null;
+      renderClientSelect();
+      resetClientForm();
+      renderClientUrls();
+      resetUrlForm();
+      toggleUrlForm(true);
+    }
+
+    async function handleUrlSubmit(event) {
+      event.preventDefault();
+      const client = getSelectedClient();
+      if (!client) {
+        setNotice('Select a client before saving URLs.', 'warning');
+        return;
+      }
+      const urlValue = els.urlInput ? els.urlInput.value.trim() : '';
+      if (!urlValue) {
+        setNotice('Please provide a valid URL.', 'warning');
+        if (els.urlInput) {
+          els.urlInput.focus();
+        }
+        return;
+      }
+      const payload = {
+        url: urlValue,
+        client_id: client.id,
+        schedule: els.urlSchedule ? els.urlSchedule.value.trim() : '',
+        description: els.urlDescription ? els.urlDescription.value.trim() : '',
+        prompt: els.urlPrompt ? els.urlPrompt.value.trim() : '',
+        returned_data: els.urlReturned ? els.urlReturned.value : ''
+      };
+      setBusy(true);
+      try {
+        if (state.urlEditingId) {
+          await request('PUT', `${baseUrlsUrl}/${state.urlEditingId}`, payload);
+          setNotice('URL updated.', 'success');
+        } else {
+          await request('POST', `${baseClientsUrl}/${client.id}/urls`, payload);
+          setNotice('URL created.', 'success');
+        }
+        resetUrlForm();
+        await fetchClients();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to save URL.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function handleUrlDelete() {
+      if (!state.urlEditingId) {
+        return;
+      }
+      if (!window.confirm('Delete this URL? This cannot be undone.')) {
+        return;
+      }
+      setBusy(true);
+      try {
+        await request('DELETE', `${baseUrlsUrl}/${state.urlEditingId}`);
+        resetUrlForm();
+        setNotice('URL deleted.', 'info');
+        await fetchClients();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to delete URL.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function handleUrlRun(urlId) {
+      if (!urlId) {
+        return;
+      }
+      const endpointTemplate = typeof config.runUrlTemplate === 'string' ? config.runUrlTemplate : '';
+      const endpoint = endpointTemplate.includes('%d') ? endpointTemplate.replace('%d', String(urlId)) : `${baseUrlsUrl}/${urlId}/run`;
+      setBusy(true);
+      try {
+        await request('POST', endpoint);
+        setNotice('Run requested for this URL.', 'success');
+        await fetchClients();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to trigger run.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function handleSelectChange(event) {
+      const value = parseInt(event.target.value, 10);
+      state.selectedId = Number.isFinite(value) ? value : null;
+      renderClientForm();
+      renderClientUrls();
+      resetUrlForm();
+      if (!state.selectedId) {
+        toggleUrlForm(true);
+      }
+    }
+
+    function handleUrlTableClick(event) {
+      const button = event.target.closest('button[data-action]');
+      if (!button) {
+        return;
+      }
+      const row = button.closest('tr[data-url-id]');
+      if (!row) {
+        return;
+      }
+      const urlId = parseInt(row.getAttribute('data-url-id'), 10);
+      const client = getSelectedClient();
+      if (!client) {
+        return;
+      }
+      const url = client.urls ? client.urls.find((entry) => entry.id === urlId) : null;
+      const action = button.getAttribute('data-action');
+      if (action === 'edit' && url) {
+        populateUrlForm(url);
+        toggleUrlForm(false);
+      } else if (action === 'delete') {
+        state.urlEditingId = urlId;
+        handleUrlDelete();
+      } else if (action === 'run') {
+        handleUrlRun(urlId);
+      }
+    }
+
+    function attachEvents() {
+      if (els.select) {
+        els.select.addEventListener('change', handleSelectChange);
+      }
+      if (els.refresh) {
+        els.refresh.addEventListener('click', fetchClients);
+      }
+      if (els.newClient) {
+        els.newClient.addEventListener('click', handleNewClient);
+      }
+      if (els.clientForm) {
+        els.clientForm.addEventListener('submit', handleClientSubmit);
+      }
+      if (els.clientReset) {
+        els.clientReset.addEventListener('click', () => {
+          renderClientForm();
+        });
+      }
+      if (els.clientDelete) {
+        els.clientDelete.addEventListener('click', handleClientDelete);
+      }
+      if (els.urlForm) {
+        els.urlForm.addEventListener('submit', handleUrlSubmit);
+      }
+      if (els.urlReset) {
+        els.urlReset.addEventListener('click', resetUrlForm);
+      }
+      if (els.urlDelete) {
+        els.urlDelete.addEventListener('click', handleUrlDelete);
+      }
+      if (els.urlRun) {
+        els.urlRun.addEventListener('click', () => {
+          if (state.urlEditingId) {
+            handleUrlRun(state.urlEditingId);
+          }
+        });
+      }
+      if (els.urlNew) {
+        els.urlNew.addEventListener('click', () => {
+          const client = getSelectedClient();
+          if (!client) {
+            setNotice('Select a client before adding URLs.', 'warning');
+            return;
+          }
+          resetUrlForm();
+          toggleUrlForm(false);
+          if (els.urlInput) {
+            els.urlInput.focus({ preventScroll: true });
+          }
+        });
+      }
+      if (els.urlsBody) {
+        els.urlsBody.addEventListener('click', handleUrlTableClick);
+      }
+    }
+
+    resetClientForm();
+    resetUrlForm();
+    toggleUrlForm(true);
+    attachEvents();
+    fetchClients();
+  }
+
+  function initCategories() {
+    const baseCategoriesUrl = config.categoriesRestUrl ? config.categoriesRestUrl.replace(/\/$/, '') : '';
+
+    if (!baseCategoriesUrl) {
+      host.textContent = 'Categories endpoint not available.';
+      return;
+    }
+
+    const markup = `
+      <div class="bg-light min-vh-100">
+        <div class="container py-4">
+          <div id="a4a-categories-notice" class="alert d-none" role="alert"></div>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <h1 class="h3 mb-0">Categories</h1>
+            <button class="btn btn-primary" type="button" data-action="new">${icon('plus', 'me-1')}New Category</button>
+          </div>
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="card shadow-sm h-100">
+                <div class="card-header">
+                  <h2 class="h6 mb-0">Category Library</h2>
+                </div>
+                <div class="card-body p-0">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Name</th>
+                        <th style="width: 120px;">Options</th>
+                        <th class="text-end" style="width: 110px;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="a4a-category-table">
+                      <tr><td colspan="3" class="text-center text-muted py-3">Loading categories…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card shadow-sm">
+              <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <h2 class="h6 mb-0" id="a4a-category-form-title">New Category</h2>
+                  <p class="text-muted small mb-0">Options can be reordered later.</p>
+                </div>
+                <span class="badge text-bg-primary" id="a4a-category-mode">New</span>
+              </div>
+              <div class="card-body">
+                <form id="a4a-category-form" class="vstack gap-3">
+                  <input type="hidden" id="a4a-category-id" />
+                  <div>
+                    <label class="form-label" for="a4a-category-name">Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="a4a-category-name" placeholder="Category name" required />
+                  </div>
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <label class="form-label mb-0" for="a4a-category-options">Options</label>
+                      <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-category-option-add">${icon('plus', 'me-1')}Add option</button>
+                    </div>
+                    <div id="a4a-category-options" class="vstack gap-2"></div>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary" id="a4a-category-save">${icon('save', 'me-1')}Save Category</button>
+                    <button type="button" class="btn btn-outline-secondary" id="a4a-category-reset">${icon('eraser', 'me-1')}Reset</button>
+                    <button type="button" class="btn btn-outline-danger ms-auto d-none" id="a4a-category-delete">${icon('trash', 'me-1')}Delete</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const app = document.createElement('div');
+    app.innerHTML = markup;
+    shadow.appendChild(app);
+
+    const els = {
+      notice: app.querySelector('#a4a-categories-notice'),
+      list: app.querySelector('#a4a-category-table'),
+      newButton: app.querySelector('[data-action="new"]'),
+      form: app.querySelector('#a4a-category-form'),
+      formTitle: app.querySelector('#a4a-category-form-title'),
+      formMode: app.querySelector('#a4a-category-mode'),
+      categoryId: app.querySelector('#a4a-category-id'),
+      categoryName: app.querySelector('#a4a-category-name'),
+      optionAdd: app.querySelector('#a4a-category-option-add'),
+      optionsContainer: app.querySelector('#a4a-category-options'),
+      saveButton: app.querySelector('#a4a-category-save'),
+      resetButton: app.querySelector('#a4a-category-reset'),
+      deleteButton: app.querySelector('#a4a-category-delete')
+    };
+
+    const state = {
+      categories: [],
+      selectedId: null,
+      saving: false
+    };
+
+    function setNotice(message, type = 'info') {
+      if (!els.notice) {
+        return;
+      }
+      if (!message) {
+        els.notice.classList.add('d-none');
+        els.notice.textContent = '';
+        return;
+      }
+      const typeClass = type ? `alert-${type}` : 'alert-info';
+      els.notice.className = `alert ${typeClass}`;
+      els.notice.textContent = message;
+      els.notice.classList.remove('d-none');
+    }
+
+    function setBusy(isBusy) {
+      if (!app.firstElementChild) {
+        return;
+      }
+      app.firstElementChild.classList.toggle('a4a-busy', Boolean(isBusy));
+    }
+
+    function renderOptions(values) {
+      if (!els.optionsContainer) {
+        return;
+      }
+      const sanitized = Array.isArray(values) && values.length ? values : [''];
+      els.optionsContainer.innerHTML = sanitized
+        .map((value, index) => {
+          const escaped = escapeHtml(value || '');
+          const disabled = sanitized.length === 1 ? ' disabled' : '';
+          return `
+            <div class="input-group" data-option-index="${index}">
+              <input type="text" class="form-control" data-option-input="true" value="${escaped}" placeholder="Option value" />
+              <button type="button" class="btn btn-outline-danger"${disabled} data-action="remove-option">${icon('trash')}</button>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function readOptions() {
+      if (!els.optionsContainer) {
+        return [];
+      }
+      const inputs = Array.from(els.optionsContainer.querySelectorAll('input[data-option-input="true"]'));
+      const values = inputs.map((input) => (input.value || '').trim()).filter(Boolean);
+      return Array.from(new Set(values));
+    }
+
+    function resetCategoryForm() {
+      state.selectedId = null;
+      if (els.formTitle) {
+        els.formTitle.textContent = 'New Category';
+      }
+      if (els.formMode) {
+        els.formMode.textContent = 'New';
+        els.formMode.className = 'badge text-bg-primary';
+      }
+      if (els.categoryId) {
+        els.categoryId.value = '';
+      }
+      if (els.categoryName) {
+        els.categoryName.value = '';
+      }
+      if (els.deleteButton) {
+        els.deleteButton.classList.add('d-none');
+      }
+      renderOptions(['']);
+    }
+
+    function populateCategoryForm(category) {
+      if (!category) {
+        resetCategoryForm();
+        return;
+      }
+      state.selectedId = category.id;
+      if (els.formTitle) {
+        els.formTitle.textContent = 'Edit Category';
+      }
+      if (els.formMode) {
+        els.formMode.textContent = 'Editing';
+        els.formMode.className = 'badge text-bg-warning';
+      }
+      if (els.categoryId) {
+        els.categoryId.value = category.id;
+      }
+      if (els.categoryName) {
+        els.categoryName.value = category.name || '';
+      }
+      if (els.deleteButton) {
+        els.deleteButton.classList.remove('d-none');
+      }
+      renderOptions(Array.isArray(category.options) ? category.options : []);
+    }
+
+    function renderCategoryList() {
+      if (!els.list) {
+        return;
+      }
+      if (!state.categories.length) {
+        els.list.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No categories yet.</td></tr>';
+        return;
+      }
+      const rows = state.categories
+        .map((category) => {
+          if (!category) {
+            return '';
+          }
+          const count = Array.isArray(category.options) ? category.options.length : 0;
+          const label = escapeHtml(category.name || `Category #${category.id}`);
+          return `
+            <tr data-category-id="${category.id}">
+              <td>${label}</td>
+              <td>${count}</td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-primary" data-action="edit">${icon('pencil')}</button>
+                  <button type="button" class="btn btn-outline-danger" data-action="delete">${icon('trash')}</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+      els.list.innerHTML = rows;
+    }
+
+    async function fetchCategories() {
+      setBusy(true);
+      try {
+        const response = await request('GET', baseCategoriesUrl);
+        state.categories = Array.isArray(response) ? response : [];
+        renderCategoryList();
+        if (state.selectedId) {
+          const match = state.categories.find((category) => category && category.id === state.selectedId);
+          if (match) {
+            populateCategoryForm(match);
+          } else {
+            resetCategoryForm();
+          }
+        }
+        setNotice('', 'info');
+      } catch (error) {
+        console.error(error);
+        state.categories = [];
+        renderCategoryList();
+        resetCategoryForm();
+        setNotice(error.message || 'Failed to load categories.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function handleCategorySubmit(event) {
+      event.preventDefault();
+      const name = els.categoryName ? els.categoryName.value.trim() : '';
+      if (!name) {
+        setNotice('Please provide a category name.', 'warning');
+        if (els.categoryName) {
+          els.categoryName.focus();
+        }
+        return;
+      }
+      const payload = { name, options: readOptions() };
+      setBusy(true);
+      try {
+        const idValue = els.categoryId ? parseInt(els.categoryId.value, 10) : 0;
+        if (idValue) {
+          await request('PUT', `${baseCategoriesUrl}/${idValue}`, payload);
+          state.selectedId = idValue;
+          setNotice('Category updated.', 'success');
+        } else {
+          const created = await request('POST', baseCategoriesUrl, payload);
+          if (created && created.id) {
+            state.selectedId = created.id;
+          }
+          setNotice('Category created.', 'success');
+        }
+        await fetchCategories();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to save category.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function handleCategoryDelete() {
+      const idValue = els.categoryId ? parseInt(els.categoryId.value, 10) : 0;
+      if (!idValue) {
+        return;
+      }
+      if (!window.confirm('Delete this category? This cannot be undone.')) {
+        return;
+      }
+      setBusy(true);
+      try {
+        await request('DELETE', `${baseCategoriesUrl}/${idValue}`);
+        state.selectedId = null;
+        resetCategoryForm();
+        setNotice('Category deleted.', 'info');
+        await fetchCategories();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to delete category.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function handleTableClick(event) {
+      const button = event.target.closest('button[data-action]');
+      if (!button) {
+        return;
+      }
+      const row = button.closest('tr[data-category-id]');
+      if (!row) {
+        return;
+      }
+      const id = parseInt(row.getAttribute('data-category-id'), 10);
+      const category = state.categories.find((entry) => entry && entry.id === id);
+      const action = button.getAttribute('data-action');
+      if (action === 'edit' && category) {
+        populateCategoryForm(category);
+      } else if (action === 'delete' && category) {
+        populateCategoryForm(category);
+        handleCategoryDelete();
+      }
+    }
+
+    function attachEvents() {
+      if (els.list) {
+        els.list.addEventListener('click', handleTableClick);
+      }
+      if (els.newButton) {
+        els.newButton.addEventListener('click', () => {
+          resetCategoryForm();
+          setNotice('', 'info');
+        });
+      }
+      if (els.form) {
+        els.form.addEventListener('submit', handleCategorySubmit);
+      }
+      if (els.resetButton) {
+        els.resetButton.addEventListener('click', () => {
+          if (state.selectedId) {
+            const match = state.categories.find((category) => category && category.id === state.selectedId);
+            if (match) {
+              populateCategoryForm(match);
+              return;
+            }
+          }
+          resetCategoryForm();
+        });
+      }
+      if (els.deleteButton) {
+        els.deleteButton.addEventListener('click', handleCategoryDelete);
+      }
+      if (els.optionAdd && els.optionsContainer) {
+        els.optionAdd.addEventListener('click', () => {
+          const current = readOptions();
+          current.push('');
+          renderOptions(current);
+        });
+        els.optionsContainer.addEventListener('click', (event) => {
+          const button = event.target.closest('button[data-action="remove-option"]');
+          if (!button || button.disabled) {
+            return;
+          }
+          const wrapper = button.closest('[data-option-index]');
+          if (!wrapper) {
+            return;
+          }
+          const index = parseInt(wrapper.getAttribute('data-option-index'), 10);
+          const current = readOptions();
+          if (Number.isFinite(index)) {
+            current.splice(index, 1);
+          }
+          renderOptions(current);
+        });
+      }
+    }
+
+    resetCategoryForm();
+    attachEvents();
+    fetchCategories();
+  }
+
   const STORAGE_KEY = 'a4a-ai-settings';
   const DEFAULT_SETTINGS = Object.freeze({
     primaryColor: '#0d6efd',
@@ -412,13 +1476,14 @@
                     <thead class="table-light">
                       <tr>
                         <th>URL &amp; context</th>
+                        <th style="width: 160px;">Client</th>
                         <th style="width: 140px;">Cadence</th>
                         <th style="width: 160px;">Updated</th>
-                        <th class="text-end" style="width: 130px;">Actions</th>
+                        <th class="text-end" style="width: 180px;">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="a4a-table-body">
-                      <tr><td colspan="4" class="text-center py-4 text-muted">Loading...</td></tr>
+                      <tr><td colspan="5" class="text-center py-4 text-muted">Loading...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -443,9 +1508,10 @@
                   <p class="mb-0">Select a row to preview metadata and captured XML.</p>
                 </div>
               </div>
-              <div class="card-footer d-flex gap-2">
+              <div class="card-footer d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-success w-100" id="a4a-detail-run" disabled>${icon('refresh', 'me-1')}Run now</button>
                 <button class="btn btn-outline-primary w-100" id="a4a-detail-edit" disabled>${icon('pencil', 'me-1')}Edit</button>
-                <button class="btn btn-outline-secondary" id="a4a-detail-copy" disabled>${icon('clipboard')}</button>
+                <button class="btn btn-outline-secondary flex-grow-1" id="a4a-detail-copy" disabled>${icon('clipboard')}</button>
               </div>
             </div>
 
@@ -512,27 +1578,38 @@
                       <input type="url" class="form-control" id="a4a-url" required placeholder="https://example.com/page" />
                     </div>
                     <div class="form-text">Exact address the AI crawler should request.</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="a4a-schedule">Schedule</label>
+                  <div class="input-group">
+                    <span class="input-group-text">${icon('calendar')}</span>
+                    <input type="text" class="form-control" id="a4a-schedule" placeholder="e.g. Daily at 09:00 CET" />
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="a4a-schedule">Schedule</label>
-                    <div class="input-group">
-                      <span class="input-group-text">${icon('calendar')}</span>
-                      <input type="text" class="form-control" id="a4a-schedule" placeholder="e.g. Daily at 09:00 CET" />
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                      <div class="form-text">Human-friendly note for now.</div>
-                      <span class="a4a-schedule-badge a4a-schedule-badge--adhoc" id="a4a-schedule-hint"></span>
-                    </div>
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div class="form-text">Human-friendly note for now.</div>
+                    <span class="a4a-schedule-badge a4a-schedule-badge--adhoc" id="a4a-schedule-hint"></span>
                   </div>
-                  <div class="col-12">
-                    <label class="form-label" for="a4a-description">Description</label>
-                    <textarea class="form-control" id="a4a-description" rows="3" placeholder="Optional context for teammates or AI prompts"></textarea>
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label" for="a4a-returned">Returned Data (XML)</label>
-                    <textarea class="form-control" id="a4a-returned" rows="6" placeholder="<results>...</results>"></textarea>
-                    <div class="form-text">Store the latest payload snapshot for comparisons.</div>
-                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="a4a-client">Client</label>
+                  <select class="form-select" id="a4a-client">
+                    <option value="">— Unassigned —</option>
+                  </select>
+                  <div class="form-text">Organise targets under a client profile.</div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="a4a-description">Description</label>
+                  <textarea class="form-control" id="a4a-description" rows="3" placeholder="Optional context for teammates or AI prompts"></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="a4a-prompt">AI Prompt</label>
+                  <textarea class="form-control" id="a4a-prompt" rows="3" placeholder="Optional instructions for downstream AI processing"></textarea>
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="a4a-returned">Returned Data (XML)</label>
+                  <textarea class="form-control" id="a4a-returned" rows="6" placeholder="<results>...</results>"></textarea>
+                  <div class="form-text">Store the latest payload snapshot for comparisons.</div>
+                </div>
                   <div class="col-12 d-flex flex-wrap gap-2">
                     <button type="submit" class="btn btn-primary" id="a4a-submit">${icon('save', 'me-1')}Save Target</button>
                     <button type="button" class="btn btn-outline-secondary" id="a4a-reset">${icon('eraser', 'me-1')}Reset</button>
@@ -572,6 +1649,8 @@
     activeId: null,
     selectedId: null,
     loading: false,
+    clients: [],
+    clientsLoading: false,
     settings: { ...sanitizedSettings }
   };
 
@@ -590,6 +1669,7 @@
     emptyState: app.querySelector('#a4a-empty-state'),
     detailCard: app.querySelector('#a4a-detail-card'),
     detailBody: app.querySelector('#a4a-detail-body'),
+    detailRun: app.querySelector('#a4a-detail-run'),
     detailEdit: app.querySelector('#a4a-detail-edit'),
     detailCopy: app.querySelector('#a4a-detail-copy'),
     timelineList: app.querySelector('#a4a-timeline-list'),
@@ -598,8 +1678,10 @@
     formCard: app.querySelector('#a4a-form-card'),
     idField: app.querySelector('#a4a-id'),
     urlField: app.querySelector('#a4a-url'),
+    clientField: app.querySelector('#a4a-client'),
     scheduleField: app.querySelector('#a4a-schedule'),
     descriptionField: app.querySelector('#a4a-description'),
+    promptField: app.querySelector('#a4a-prompt'),
     returnedField: app.querySelector('#a4a-returned'),
     submitButton: app.querySelector('#a4a-submit'),
     resetButton: app.querySelector('#a4a-reset'),
@@ -848,7 +1930,7 @@
       return;
     }
     if (!state.items.length) {
-      els.tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No URLs yet. Use the button above to create one.</td></tr>';
+      els.tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No URLs yet. Use the button above to create one.</td></tr>';
       els.emptyState.classList.remove('d-none');
       return;
     }
@@ -860,6 +1942,10 @@
         const description = summarize(item.description, 90);
         const badge = renderScheduleBadge(item.schedule);
         const selectedClass = state.selectedId === item.id ? 'table-active' : '';
+        const clientName = getClientName(item.client_id);
+        const clientCell = clientName
+          ? `<span class="badge text-bg-light text-dark">${escapeHtml(clientName)}</span>`
+          : '<span class="text-muted">—</span>';
         return `
           <tr class="${selectedClass}" data-row-id="${item.id}">
             <td>
@@ -868,6 +1954,7 @@
                 ${description ? escapeHtml(description) : 'Add some context for this target.'}
               </div>
             </td>
+            <td>${clientCell}</td>
             <td>${badge}</td>
             <td>
               <div class="small fw-semibold">${escapeHtml(times.relative)}</div>
@@ -875,9 +1962,10 @@
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm" role="group">
-                <button class="btn btn-outline-primary" data-action="edit" data-id="${item.id}">${icon('pencil')}</button>
-                <button class="btn btn-outline-secondary" data-action="copy" data-id="${item.id}">${icon('copy')}</button>
-                <button class="btn btn-outline-danger" data-action="delete" data-id="${item.id}">${icon('trash')}</button>
+                <button class="btn btn-outline-success" data-action="run" data-id="${item.id}" title="Run now">${icon('refresh')}</button>
+                <button class="btn btn-outline-primary" data-action="edit" data-id="${item.id}" title="Edit">${icon('pencil')}</button>
+                <button class="btn btn-outline-secondary" data-action="copy" data-id="${item.id}" title="Copy URL">${icon('copy')}</button>
+                <button class="btn btn-outline-danger" data-action="delete" data-id="${item.id}" title="Delete">${icon('trash')}</button>
               </div>
             </td>
           </tr>
@@ -886,6 +1974,68 @@
       .join('');
 
     els.tableBody.innerHTML = rows;
+  }
+
+  function getClientName(clientId) {
+    if (!clientId) {
+      return '';
+    }
+    const match = state.clients.find((client) => client && client.id === clientId);
+    return match ? match.name || '' : '';
+  }
+
+  function renderClientOptions(preserveCurrent = true) {
+    if (!els.clientField) {
+      return;
+    }
+    const previousValue = preserveCurrent ? els.clientField.value : '';
+    const options = ['<option value="">— Unassigned —</option>'];
+    const sortedClients = [...state.clients].sort((a, b) => {
+      const nameA = (a && a.name ? a.name : '').toLowerCase();
+      const nameB = (b && b.name ? b.name : '').toLowerCase();
+      if (nameA && nameB) {
+        return nameA.localeCompare(nameB);
+      }
+      if (nameA) {
+        return -1;
+      }
+      if (nameB) {
+        return 1;
+      }
+      return 0;
+    });
+    sortedClients.forEach((client) => {
+      if (!client) {
+        return;
+      }
+      const id = String(client.id);
+      const label = client.name ? client.name : `Client #${client.id}`;
+      options.push(`<option value="${id}">${escapeHtml(label)}</option>`);
+    });
+    els.clientField.innerHTML = options.join('');
+    if (previousValue && Array.from(els.clientField.options).some((option) => option.value === previousValue)) {
+      els.clientField.value = previousValue;
+    } else {
+      els.clientField.value = '';
+    }
+  }
+
+  async function fetchClientsForSelect() {
+    if (!config.clientsRestUrl) {
+      return;
+    }
+    state.clientsLoading = true;
+    try {
+      const base = config.clientsRestUrl.replace(/\/$/, '');
+      const response = await request('GET', `${base}?per_page=100&_fields=id,name`);
+      state.clients = Array.isArray(response) ? response : [];
+      renderClientOptions();
+      refreshUI();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      state.clientsLoading = false;
+    }
   }
 
   function getSelectedItem() {
@@ -902,6 +2052,9 @@
         '<div class="text-center text-muted py-5"><p class="fw-semibold mb-1">Pick a target to inspect</p><p class="mb-0">Select a row to preview metadata and captured XML.</p></div>';
       els.detailEdit.disabled = true;
       els.detailCopy.disabled = true;
+      if (els.detailRun) {
+        els.detailRun.disabled = true;
+      }
       return;
     }
 
@@ -910,11 +2063,18 @@
     const xmlContent = (item.returned_data || '').trim()
       ? escapeHtml(item.returned_data)
       : '&lt;!-- no XML captured yet --&gt;';
+    const clientName = getClientName(item.client_id);
+    const promptText = (item.prompt || '').trim();
+    const runMeta = item.run_requested_gmt ? formatModified(item.run_requested_gmt) : null;
 
     els.detailBody.innerHTML = `
       <div class="mb-3">
         <div class="text-muted text-uppercase small fw-semibold mb-1">Target URL</div>
         <a href="${escapeHtml(item.url)}" class="text-decoration-none" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a>
+      </div>
+      <div class="mb-3">
+        <div class="text-muted text-uppercase small fw-semibold mb-1">Client</div>
+        ${clientName ? `<span class="badge text-bg-light text-dark">${escapeHtml(clientName)}</span>` : '<span class="text-muted small">Unassigned</span>'}
       </div>
       <div class="mb-3">
         <div class="text-muted text-uppercase small fw-semibold mb-1">Cadence</div>
@@ -926,8 +2086,24 @@
         <div class="text-muted small">${escapeHtml(times.absolute)}</div>
       </div>
       <div class="mb-3">
+        <div class="text-muted text-uppercase small fw-semibold mb-1">Last run request</div>
+        ${
+          runMeta
+            ? `<div class="small fw-semibold">${escapeHtml(runMeta.relative)}</div><div class="text-muted small">${escapeHtml(runMeta.absolute)}</div>`
+            : '<div class="text-muted small">No ad-hoc run requested.</div>'
+        }
+      </div>
+      <div class="mb-3">
         <div class="text-muted text-uppercase small fw-semibold mb-1">Description</div>
         <p class="mb-0">${escapeHtml(item.description || 'No description yet. Add notes for collaborators.')}</p>
+      </div>
+      <div class="mb-3">
+        <div class="text-muted text-uppercase small fw-semibold mb-1">AI Prompt</div>
+        ${
+          promptText
+            ? `<pre class="bg-light border rounded small p-2 text-break mb-0" style="white-space: pre-wrap;">${escapeHtml(promptText)}</pre>`
+            : '<div class="text-muted small">This target does not have a prompt yet.</div>'
+        }
       </div>
       <div>
         <div class="text-muted text-uppercase small fw-semibold mb-1">Returned XML</div>
@@ -938,6 +2114,9 @@
     els.previewContent.innerHTML = xmlContent;
     els.detailEdit.disabled = false;
     els.detailCopy.disabled = false;
+    if (els.detailRun) {
+      els.detailRun.disabled = false;
+    }
   }
 
   function renderTimeline() {
@@ -981,8 +2160,14 @@
     state.activeId = null;
     els.idField.value = '';
     els.urlField.value = '';
+    if (els.clientField) {
+      els.clientField.value = '';
+    }
     els.scheduleField.value = '';
     els.descriptionField.value = '';
+    if (els.promptField) {
+      els.promptField.value = '';
+    }
     els.returnedField.value = '';
     els.formTitle.textContent = 'Create Crawl Target';
     els.modeIndicator.textContent = 'New';
@@ -995,8 +2180,14 @@
     state.activeId = item.id;
     els.idField.value = item.id;
     els.urlField.value = item.url || '';
+    if (els.clientField) {
+      els.clientField.value = item.client_id ? String(item.client_id) : '';
+    }
     els.scheduleField.value = item.schedule || '';
     els.descriptionField.value = item.description || '';
+    if (els.promptField) {
+      els.promptField.value = item.prompt || '';
+    }
     els.returnedField.value = item.returned_data || '';
     els.formTitle.textContent = 'Update Crawl Target';
     els.modeIndicator.textContent = 'Editing';
@@ -1008,24 +2199,6 @@
   function selectItem(id) {
     state.selectedId = id || null;
     refreshUI();
-  }
-
-  async function request(method, url, payload) {
-    const options = {
-      method,
-      headers: { 'X-WP-Nonce': config.nonce }
-    };
-    if (payload !== undefined) {
-      options.headers['Content-Type'] = 'application/json';
-      options.body = JSON.stringify(payload);
-    }
-    const response = await fetch(url, options);
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      const message = (error && error.message) || `Request failed with status ${response.status}`;
-      throw new Error(message);
-    }
-    return response.status === 204 ? null : response.json();
   }
 
   async function fetchItems() {
@@ -1065,6 +2238,37 @@
     } catch (error) {
       console.error(error);
       setNotice(error.message || 'Failed to delete the URL.', 'danger');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runUrlNow(id) {
+    if (!id) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const endpointTemplate = typeof config.runUrlTemplate === 'string' ? config.runUrlTemplate : '';
+      const endpoint = endpointTemplate.includes('%d')
+        ? endpointTemplate.replace('%d', String(id))
+        : `${config.restUrl.replace(/\/$/, '')}/${id}/run`;
+      const updated = await request('POST', endpoint);
+      if (updated && typeof updated === 'object') {
+        const index = state.items.findIndex((item) => item.id === updated.id);
+        if (index !== -1) {
+          state.items[index] = updated;
+        } else {
+          state.items.push(updated);
+        }
+        state.selectedId = updated.id;
+        resortItems();
+        refreshUI();
+        setNotice('Run requested. This target will be processed shortly.', 'success');
+      }
+    } catch (error) {
+      console.error(error);
+      setNotice(error.message || 'Failed to trigger the run.', 'danger');
     } finally {
       setLoading(false);
     }
@@ -1125,6 +2329,8 @@
         populateForm(item);
         selectItem(item.id);
         host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (action === 'run') {
+        runUrlNow(id);
       } else if (action === 'delete') {
         if (window.confirm('Delete this URL? This cannot be undone.')) {
           deleteItem(id);
@@ -1147,10 +2353,13 @@
   async function handleSubmit(event) {
     event.preventDefault();
     setNotice('');
+    const clientValue = els.clientField ? parseInt(els.clientField.value, 10) : 0;
     const payload = {
       url: els.urlField.value.trim(),
+      client_id: Number.isFinite(clientValue) && clientValue > 0 ? clientValue : 0,
       schedule: els.scheduleField.value.trim(),
       description: els.descriptionField.value.trim(),
+      prompt: els.promptField ? els.promptField.value.trim() : '',
       returned_data: els.returnedField.value
     };
     if (!payload.url) {
@@ -1211,6 +2420,21 @@
         copyToClipboard(item.url);
       }
     });
+    if (els.detailRun) {
+      els.detailRun.addEventListener('click', () => {
+        const item = getSelectedItem();
+        if (item) {
+          runUrlNow(item.id);
+        }
+      });
+    }
+    if (els.clientField) {
+      els.clientField.addEventListener('focus', () => {
+        if (!state.clients.length && !state.clientsLoading) {
+          fetchClientsForSelect();
+        }
+      });
+    }
     els.previewToggle.addEventListener('click', () => togglePreview(true));
     els.previewClose.addEventListener('click', () => togglePreview(false));
     els.returnedField.addEventListener('input', () => {
@@ -1250,6 +2474,9 @@
 
   resetForm();
   wireEvents();
+  fetchClientsForSelect();
   fetchItems();
 
 })();
+
+
