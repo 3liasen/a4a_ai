@@ -69,7 +69,7 @@ final class A4A_AI_Plugin {
             'name' => __('AI URLs', 'a4a-ai'),
             'singular_name' => __('AI URL', 'a4a-ai'),
             'add_new' => __('Add New', 'a4a-ai'),
-            'add_new_item' => __('Add New URLLL', 'a4a-ai'),
+            'add_new_item' => __('Add New URL', 'a4a-ai'),
             'edit_item' => __('Edit URL', 'a4a-ai'),
             'new_item' => __('New URL', 'a4a-ai'),
             'view_item' => __('View URL', 'a4a-ai'),
