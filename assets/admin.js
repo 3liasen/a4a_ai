@@ -49,6 +49,21 @@
       --a4a-color-danger-border: rgba(220, 53, 69, 0.35);
       --a4a-icon-scale: 1;
     }
+    input,
+    textarea,
+    select {
+      background: #ffffff !important;
+      border: 1px solid #000000 !important;
+      box-shadow: none !important;
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      background: #ffffff !important;
+      border: 1px solid #000000 !important;
+      box-shadow: 0 0 0 0.2rem rgba(0,0,0,0.1) !important;
+      outline: none;
+    }
     .a4a-busy { position: relative; }
     .a4a-busy::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.65); border-radius: 0.75rem; z-index: 10; }
     .a4a-busy::before { content: ''; position: absolute; top: 50%; left: 50%; width: 2.5rem; height: 2.5rem; margin: -1.25rem 0 0 -1.25rem; border-radius: 50%; border: 0.35rem solid rgba(13,110,253,0.25); border-top-color: rgba(13,110,253,0.8); animation: a4a-spin 0.7s linear infinite; z-index: 11; }
