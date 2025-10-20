@@ -511,7 +511,7 @@
                       <span class="input-group-text">${icon('link')}</span>
                       <input type="url" class="form-control" id="a4a-url" required placeholder="https://example.com/page" />
                     </div>
-                    <div class="form-text">Exacttttt address the AI crawler should request.</div>
+                    <div class="form-text">Exact address the AI crawler should request.</div>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label" for="a4a-schedule">Schedule</label>
