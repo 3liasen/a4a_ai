@@ -24,9 +24,9 @@ final class A4A_AI_Plugin {
     private static $instance = null;
 
     /**
-     * @var string
+     * @var string[]
      */
-    private $admin_hook = '';
+    private $admin_hooks = [];
 
     /**
      * Main entry point.
@@ -157,36 +157,100 @@ final class A4A_AI_Plugin {
     }
 
     /**
+     * Stores an admin hook identifier when registration succeeds.
+     *
+     * @param string|false $hook
+     */
+    private function store_admin_hook($hook) {
+        if (!empty($hook)) {
+            $this->admin_hooks[] = $hook;
+        }
+    }
+
+    /**
      * Registers the WordPress admin menu entry.
      */
     public function register_admin_menu() {
         $capability = 'manage_options';
-        $callback = [$this, 'render_admin_app'];
+        $main_callback = [$this, 'render_main_page'];
 
-        $hook = add_menu_page(
+        $main_hook = add_menu_page(
             __('axs4all - AI', 'a4a-ai'),
             __('axs4all - AI', 'a4a-ai'),
             $capability,
             self::SLUG,
-            $callback,
+            $main_callback,
             'dashicons-art',
             66
         );
 
-        if ($hook) {
-            $this->admin_hook = $hook;
-        }
+        $this->store_admin_hook($main_hook);
+
+        // Explicit dashboard entry mirrors the main page.
+        $dashboard_hook = add_submenu_page(
+            self::SLUG,
+            __('Dashboard', 'a4a-ai'),
+            __('Dashboard', 'a4a-ai'),
+            $capability,
+            self::SLUG,
+            [$this, 'render_main_page']
+        );
+        $this->store_admin_hook($dashboard_hook);
+
+        $clients_hook = add_submenu_page(
+            self::SLUG,
+            __('Clients', 'a4a-ai'),
+            __('Clients', 'a4a-ai'),
+            $capability,
+            self::SLUG . '-clients',
+            [$this, 'render_clients_page']
+        );
+        $this->store_admin_hook($clients_hook);
+
+        $categories_hook = add_submenu_page(
+            self::SLUG,
+            __('Categories', 'a4a-ai'),
+            __('Categories', 'a4a-ai'),
+            $capability,
+            self::SLUG . '-categories',
+            [$this, 'render_categories_page']
+        );
+        $this->store_admin_hook($categories_hook);
+    }
+
+    /**
+     * Renders the main dashboard view (existing URLs screen).
+     */
+    public function render_main_page() {
+        $this->render_admin_app('urls');
+    }
+
+    /**
+     * Renders the clients screen.
+     */
+    public function render_clients_page() {
+        $this->render_admin_app('clients');
+    }
+
+    /**
+     * Renders the categories screen.
+     */
+    public function render_categories_page() {
+        $this->render_admin_app('categories');
     }
 
     /**
      * Outputs the root element for the Bootstrap-powered SPA.
      */
-    public function render_admin_app() {
+    public function render_admin_app($default_view = 'urls') {
         if (!current_user_can('manage_options')) {
             wp_die(__('You do not have permission to access this page.', 'a4a-ai'));
         }
 
-        echo '<div id="a4a-ai-root"></div>';
+        printf(
+            '<div id="a4a-ai-root" data-default-view="%s"></div>',
+            esc_attr($default_view)
+        );
     }
 
     /**
@@ -195,7 +259,7 @@ final class A4A_AI_Plugin {
      * @param string $hook
      */
     public function enqueue_admin_assets($hook) {
-        if (empty($this->admin_hook) || $hook !== $this->admin_hook) {
+        if (empty($this->admin_hooks) || !in_array($hook, $this->admin_hooks, true)) {
             return;
         }
 
@@ -218,6 +282,7 @@ final class A4A_AI_Plugin {
                 'clientsRestUrl' => esc_url_raw(rest_url('a4a/v1/clients')),
                 'categoriesRestUrl' => esc_url_raw(rest_url('a4a/v1/categories')),
                 'runUrlTemplate' => esc_url_raw(rest_url('a4a/v1/urls/%d/run')),
+                'defaultView' => $this->determine_default_view($hook),
                 'nonce' => wp_create_nonce('wp_rest'),
                 'assetsUrl' => plugin_dir_url(__FILE__) . 'assets/',
                 'version' => self::VERSION,
@@ -225,6 +290,23 @@ final class A4A_AI_Plugin {
         );
 
         wp_enqueue_script($handle);
+    }
+
+    /**
+     * Determines which SPA view should be active for the current hook.
+     *
+     * @param string $hook
+     * @return string
+     */
+    private function determine_default_view($hook) {
+        switch ($hook) {
+            case 'a4a-ai_page_' . self::SLUG . '-clients':
+                return 'clients';
+            case 'a4a-ai_page_' . self::SLUG . '-categories':
+                return 'categories';
+            default:
+                return 'urls';
+        }
     }
 
     /**
