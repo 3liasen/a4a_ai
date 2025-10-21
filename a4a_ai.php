@@ -300,6 +300,7 @@ final class A4A_AI_Plugin {
                 'clientsRestUrl' => esc_url_raw(rest_url('a4a/v1/clients')),
                 'categoriesRestUrl' => esc_url_raw(rest_url('a4a/v1/categories')),
                 'settingsRestUrl' => esc_url_raw(rest_url('a4a/v1/settings')),
+                'iconsRestUrl' => esc_url_raw(rest_url('a4a/v1/icons')),
                 'runUrlTemplate' => esc_url_raw(rest_url('a4a/v1/urls/%d/run')),
                 'defaultView' => $this->determine_default_view($hook),
                 'nonce' => wp_create_nonce('wp_rest'),
@@ -483,6 +484,18 @@ final class A4A_AI_Plugin {
                     'callback' => [$this, 'rest_update_settings'],
                     'permission_callback' => [$this, 'can_manage'],
                     'args' => $this->settings_args(),
+                ],
+            ]
+        );
+
+        register_rest_route(
+            'a4a/v1',
+            '/icons',
+            [
+                [
+                    'methods' => WP_REST_Server::READABLE,
+                    'callback' => [$this, 'rest_list_icons'],
+                    'permission_callback' => [$this, 'can_manage'],
                 ],
             ]
         );
@@ -1395,6 +1408,16 @@ final class A4A_AI_Plugin {
     }
 
     /**
+     * Lists available SVG icons from the uploads directory.
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response
+     */
+    public function rest_list_icons($request) {
+        return rest_ensure_response($this->get_available_icons());
+    }
+
+    /**
      * Persists client meta data.
      *
      * @param int             $post_id
@@ -1676,6 +1699,66 @@ final class A4A_AI_Plugin {
             'api_organization' => sanitize_text_field(wp_unslash($values['api_organization'])),
             'api_key' => $this->sanitize_api_key($values['api_key']),
         ];
+    }
+
+    /**
+     * Returns metadata for uploaded SVG icons.
+     *
+     * @return array
+     */
+    private function get_available_icons() {
+        $uploads = wp_upload_dir();
+        if (!empty($uploads['error'])) {
+            return [];
+        }
+
+        $directory = trailingslashit($uploads['basedir']) . 'fa_icons';
+        $base_url = trailingslashit($uploads['baseurl']) . 'fa_icons/';
+        if (!is_dir($directory) || !is_readable($directory)) {
+            return [];
+        }
+
+        $files = glob(trailingslashit($directory) . '*.svg');
+        if (!is_array($files) || !$files) {
+            return [];
+        }
+
+        $icons = [];
+        foreach ($files as $file) {
+            if (!is_readable($file)) {
+                continue;
+            }
+
+            $filename = basename($file);
+            $name = pathinfo($filename, PATHINFO_FILENAME);
+            $icons[] = [
+                'id' => sanitize_title($name),
+                'name' => $this->humanize_icon_name($name),
+                'filename' => $filename,
+                'url' => esc_url_raw($base_url . $filename),
+            ];
+        }
+
+        return $icons;
+    }
+
+    /**
+     * Converts a filename into a human-readable label.
+     *
+     * @param string $name
+     * @return string
+     */
+    private function humanize_icon_name($name) {
+        $label = strtolower((string) $name);
+        $label = str_replace(['-', '_'], ' ', $label);
+        $label = preg_replace('/\s+/', ' ', $label);
+        $label = trim($label);
+
+        if ($label === '') {
+            return (string) $name;
+        }
+
+        return ucwords($label);
     }
 
     /**

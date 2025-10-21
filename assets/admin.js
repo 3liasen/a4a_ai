@@ -82,6 +82,7 @@
     .a4a-empty .icon-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
     .a4a-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
     .a4a-icon svg { width: calc(var(--a4a-icon-scale) * 1em); height: calc(var(--a4a-icon-scale) * 1em); stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .a4a-icon img { width: calc(var(--a4a-icon-scale) * 1em); height: calc(var(--a4a-icon-scale) * 1em); object-fit: contain; }
     .a4a-schedule-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; background: rgba(0,0,0,0.05); }
     .a4a-schedule-badge .a4a-icon { font-size: 0.95em; }
     .a4a-schedule-badge--scheduled { background-color: var(--a4a-color-success-bg); color: var(--a4a-color-success); border-color: var(--a4a-color-success-border); }
@@ -89,6 +90,22 @@
     .a4a-schedule-text--scheduled { color: var(--a4a-color-success); }
     .a4a-schedule-text--adhoc { color: var(--a4a-color-danger); }
     .a4a-xml-preview { max-height: 220px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #f8f9fa; border-radius: 0.5rem; padding: 1rem; }
+    .a4a-icon-setting-card { border: 1px solid rgba(0,0,0,0.1); border-radius: 0.75rem; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; background-color: #ffffff; }
+    .a4a-icon-setting-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+    .a4a-icon-setting-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .a4a-icon-preview { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 0.75rem; background: rgba(0,0,0,0.05); }
+    .a4a-icon-preview .a4a-icon { font-size: 1.5rem; }
+    .a4a-icon-filename { font-size: 0.85rem; color: #6c757d; }
+    .a4a-icon-picker-backdrop { position: fixed; inset: 0; background: rgba(33,37,41,0.5); display: none; align-items: center; justify-content: center; z-index: 1500; padding: 1.5rem; }
+    .a4a-icon-picker-backdrop.is-active { display: flex; }
+    .a4a-icon-picker { background: #ffffff; border-radius: 1rem; max-width: min(720px, 100%); width: 100%; box-shadow: 0 1.75rem 3.5rem rgba(0,0,0,0.2); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; }
+    .a4a-icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 0.75rem; overflow: auto; padding: 0.25rem; border: 1px solid rgba(0,0,0,0.05); border-radius: 0.75rem; background: rgba(0,0,0,0.02); flex: 1; }
+    .a4a-icon-picker-grid button { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border: 1px solid rgba(0,0,0,0.1); border-radius: 0.75rem; padding: 0.75rem; background: #ffffff; cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+    .a4a-icon-picker-grid button:hover { transform: translateY(-2px); border-color: var(--a4a-color-primary); box-shadow: 0 0.5rem 1.25rem rgba(13,110,253,0.15); }
+    .a4a-icon-picker-grid button.is-selected { border-color: var(--a4a-color-primary); background: rgba(13,110,253,0.08); }
+    .a4a-icon-picker-grid button span { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: #495057; }
+    .a4a-icon-picker-empty { text-align: center; padding: 2rem 1rem; color: #6c757d; }
+    .a4a-icon-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
   `;
   shadow.appendChild(baseStyle);
 
@@ -115,12 +132,34 @@
     circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`
   });
 
+  const ICON_KEYS = Object.freeze(Object.keys(ICONS));
+  const ICON_METADATA = Object.freeze({
+    plus: { label: 'Add Item', usage: 'Used for new client and URL buttons.' },
+    list: { label: 'Listing', usage: 'Used within list headers.' },
+    clock: { label: 'Schedule', usage: 'Used for schedule displays.' },
+    refresh: { label: 'Run / Refresh', usage: 'Used for run and refresh actions.' },
+    robot: { label: 'Assistant', usage: 'Used in AI helper messaging.' },
+    sparkles: { label: 'Highlights', usage: 'Used for emphasis icons.' },
+    pencil: { label: 'Edit', usage: 'Used for edit actions.' },
+    clipboard: { label: 'Copy', usage: 'Used for clipboard or copy prompts.' },
+    trash: { label: 'Delete', usage: 'Used for delete actions.' },
+    link: { label: 'Link', usage: 'Used for URL references.' },
+    calendar: { label: 'Calendar', usage: 'Used for scheduling fields.' },
+    save: { label: 'Save', usage: 'Used for save buttons.' },
+    eraser: { label: 'Reset', usage: 'Used for reset buttons.' },
+    code: { label: 'Code', usage: 'Used in code view toggles.' },
+    close: { label: 'Close', usage: 'Used for close buttons.' },
+    copy: { label: 'Duplicate', usage: 'Used for duplicate or copy actions.' },
+    circle: { label: 'Default', usage: 'Fallback icon if no icon is found.' }
+  });
+
   const STORAGE_KEY = 'a4a-ai-settings';
   const DEFAULT_SETTINGS = Object.freeze({
     primaryColor: '#0d6efd',
     successColor: '#198754',
     dangerColor: '#dc3545',
-    iconScale: 1
+    iconScale: 1,
+    iconOverrides: Object.freeze({})
   });
 
   function normalizeHex(value) {
@@ -192,8 +231,42 @@
     return Math.min(1.75, Math.max(0.75, Number(num.toFixed(2))));
   }
 
+  function sanitizeIconUrl(value) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.length > 500) {
+      return null;
+    }
+    if (/[<>'"]/.test(trimmed)) {
+      return null;
+    }
+    if (!trimmed.endsWith('.svg')) {
+      return null;
+    }
+    if (!trimmed.includes('/wp-content/uploads/fa_icons/')) {
+      return null;
+    }
+    return trimmed;
+  }
+
+  function sanitizeIconOverrides(overrides) {
+    const sanitized = {};
+    if (!overrides || typeof overrides !== 'object') {
+      return sanitized;
+    }
+    ICON_KEYS.forEach((key) => {
+      const value = sanitizeIconUrl(overrides[key]);
+      if (value) {
+        sanitized[key] = value;
+      }
+    });
+    return sanitized;
+  }
+
   function loadSettings() {
-    const settings = { ...DEFAULT_SETTINGS };
+    const settings = { ...DEFAULT_SETTINGS, iconOverrides: {} };
     try {
       if (typeof window.localStorage === 'undefined') {
         return settings;
@@ -215,6 +288,9 @@
         }
         if (parsed.iconScale !== undefined) {
           settings.iconScale = clampIconScale(parsed.iconScale);
+        }
+        if (parsed.iconOverrides) {
+          settings.iconOverrides = sanitizeIconOverrides(parsed.iconOverrides);
         }
       }
     } catch (error) {
@@ -239,6 +315,7 @@
     const success = normalizeHex(settings.successColor) || DEFAULT_SETTINGS.successColor;
     const danger = normalizeHex(settings.dangerColor) || DEFAULT_SETTINGS.dangerColor;
     const iconScale = clampIconScale(settings.iconScale);
+    const iconOverrides = sanitizeIconOverrides(settings.iconOverrides);
 
     const primaryHover = shadeColor(primary, -0.1);
     const primaryActive = shadeColor(primary, -0.2);
@@ -326,7 +403,8 @@
       primaryColor: primary,
       successColor: success,
       dangerColor: danger,
-      iconScale
+      iconScale,
+      iconOverrides
     };
   }
 
@@ -342,7 +420,14 @@
   };
 
   function updateSettingsState(partial) {
-    const merged = { ...settingsState.value, ...partial };
+    const merged = {
+      ...settingsState.value,
+      ...partial,
+      iconOverrides:
+        partial && Object.prototype.hasOwnProperty.call(partial, 'iconOverrides')
+          ? { ...(partial.iconOverrides || {}) }
+          : { ...(settingsState.value.iconOverrides || {}) }
+    };
     const sanitized = applySettingsToTheme(merged);
     settingsState.value = sanitized;
     saveSettings(sanitized);
@@ -350,12 +435,17 @@
   }
 
   function resetSettingsState() {
-    return updateSettingsState({ ...DEFAULT_SETTINGS });
+    return updateSettingsState({ ...DEFAULT_SETTINGS, iconOverrides: {} });
   }
 
   function icon(name, extraClass = '') {
-    const svg = ICONS[name] || ICONS.circle;
+    const overrides = settingsState.value && settingsState.value.iconOverrides ? settingsState.value.iconOverrides : null;
+    const overrideUrl = overrides && overrides[name] ? sanitizeIconUrl(overrides[name]) : null;
     const extra = extraClass ? ' ' + extraClass : '';
+    if (overrideUrl) {
+      return `<span class="a4a-icon${extra}" aria-hidden="true"><img src="${escapeHtml(overrideUrl)}" alt="" loading="lazy" decoding="async" /></span>`;
+    }
+    const svg = ICONS[name] || ICONS.circle;
     return `<span class="a4a-icon${extra}" aria-hidden="true">${svg}</span>`;
   }
 
@@ -1190,6 +1280,13 @@
                       <input type="range" class="form-range" id="a4a-setting-icon" min="0.75" max="1.75" step="0.05" />
                       <div class="form-text">Adjust the multiplier applied to interface icons. Current: <span id="a4a-setting-icon-label">100%</span></div>
                     </div>
+                    <div>
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <h3 class="h6 mb-0">Interface Icons</h3>
+                      </div>
+                      <p class="form-text mb-0">Pick from the SVGs in <code>/wp-content/uploads/fa_icons</code>. Click an icon below to customise each action.</p>
+                      <div class="vstack gap-3 mt-3" id="a4a-icon-settings"></div>
+                    </div>
                     <div class="d-flex justify-content-end">
                       <button type="button" class="btn btn-outline-secondary btn-sm" id="a4a-settings-reset">${icon('eraser', 'me-1')}Reset defaults</button>
                     </div>
@@ -1236,6 +1333,22 @@
           </div>
         </div>
       </div>
+      <div class="a4a-icon-picker-backdrop" id="a4a-icon-picker" hidden tabindex="-1">
+        <div class="a4a-icon-picker" role="dialog" aria-modal="true" aria-labelledby="a4a-icon-picker-title">
+          <div class="a4a-icon-picker-toolbar">
+            <div>
+              <h2 class="h5 mb-1" id="a4a-icon-picker-title">Choose an icon</h2>
+              <p class="text-muted mb-0 small" id="a4a-icon-picker-subtitle">Browse uploaded icons to replace this action.</p>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-icon-picker-close="true" aria-label="Close icon picker">${icon('close', 'me-1')}Close</button>
+          </div>
+          <div>
+            <label class="form-label" for="a4a-icon-picker-search">Search icons</label>
+            <input type="search" class="form-control" id="a4a-icon-picker-search" placeholder="Search by icon name or filename" autocomplete="off" />
+          </div>
+          <div id="a4a-icon-picker-body" class="a4a-icon-picker-grid" role="listbox" aria-live="polite"></div>
+        </div>
+      </div>
     `;
 
     const app = document.createElement('div');
@@ -1251,6 +1364,12 @@
       settingIcon: app.querySelector('#a4a-setting-icon'),
       settingIconLabel: app.querySelector('#a4a-setting-icon-label'),
       settingsReset: app.querySelector('#a4a-settings-reset'),
+      iconSettings: app.querySelector('#a4a-icon-settings'),
+      iconPicker: app.querySelector('#a4a-icon-picker'),
+      iconPickerTitle: app.querySelector('#a4a-icon-picker-title'),
+      iconPickerSubtitle: app.querySelector('#a4a-icon-picker-subtitle'),
+      iconPickerSearch: app.querySelector('#a4a-icon-picker-search'),
+      iconPickerBody: app.querySelector('#a4a-icon-picker-body'),
       apiForm: app.querySelector('#a4a-api-form'),
       apiProvider: app.querySelector('#a4a-api-provider'),
       apiBase: app.querySelector('#a4a-api-base'),
@@ -1268,7 +1387,14 @@
         api_organization: '',
         api_key: ''
       },
-      apiBusy: false
+      apiBusy: false,
+      iconPicker: {
+        icons: [],
+        loading: false,
+        search: '',
+        activeKey: '',
+        error: ''
+      }
     };
 
     function setNotice(message, type = 'info') {
@@ -1302,6 +1428,225 @@
       if (els.settingIconLabel) {
         els.settingIconLabel.textContent = `${Math.round(clampIconScale(state.interface.iconScale) * 100)}%`;
       }
+      renderIconSettings();
+      if (els.iconPicker && !els.iconPicker.hasAttribute('hidden')) {
+      renderIconPicker();
+    }
+  }
+
+    function formatIconLabel(key) {
+      if (typeof key !== 'string' || !key) {
+        return 'Icon';
+      }
+      const meta = ICON_METADATA[key];
+      if (meta && meta.label) {
+        return meta.label;
+      }
+      const cleaned = key.replace(/[_-]+/g, ' ').trim();
+      if (!cleaned) {
+        return 'Icon';
+      }
+      return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function renderIconSettings() {
+      if (!els.iconSettings) {
+        return;
+      }
+      const overrides = state.interface.iconOverrides || {};
+      const cards = ICON_KEYS.map((key) => {
+        const label = formatIconLabel(key);
+        const meta = ICON_METADATA[key] || {};
+        const overrideUrl = sanitizeIconUrl(overrides[key]);
+        const filename = overrideUrl ? overrideUrl.split('/').pop() || overrideUrl : '';
+        const usage = meta.usage ? `<p class="mb-0 small text-muted">${escapeHtml(meta.usage)}</p>` : '';
+        const resetClass = `btn btn-link btn-sm text-decoration-none${overrideUrl ? '' : ' disabled text-muted'}`;
+        const resetAttrs = overrideUrl ? '' : ' disabled aria-disabled="true"';
+        const filenameText = overrideUrl ? escapeHtml(filename) : 'Default icon';
+        return `
+          <div class="a4a-icon-setting-card" data-icon-key="${key}">
+            <div class="a4a-icon-setting-header">
+              <div>
+                <div class="fw-semibold">${escapeHtml(label)}</div>
+                ${usage}
+              </div>
+              <div class="a4a-icon-setting-actions">
+                <span class="a4a-icon-preview">${icon(key)}</span>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-icon-action="choose">Choose icon</button>
+                <button type="button" class="${resetClass}" data-icon-action="clear"${resetAttrs}>Reset</button>
+              </div>
+            </div>
+            <div class="a4a-icon-filename">${filenameText}</div>
+          </div>`;
+      }).join('');
+      els.iconSettings.innerHTML = cards;
+    }
+
+    function handleIconSettingsClick(event) {
+      const actionEl = event.target.closest('[data-icon-action]');
+      if (!actionEl) {
+        return;
+      }
+      const wrapper = actionEl.closest('[data-icon-key]');
+      if (!wrapper) {
+        return;
+      }
+      const key = wrapper.getAttribute('data-icon-key');
+      if (!key) {
+        return;
+      }
+      const action = actionEl.getAttribute('data-icon-action');
+      if (action === 'choose') {
+        openIconPicker(key);
+      } else if (action === 'clear') {
+        const overrides = { ...(state.interface.iconOverrides || {}) };
+        if (overrides[key]) {
+          delete overrides[key];
+          handleInterfaceChange({ iconOverrides: overrides });
+        }
+      }
+    }
+
+    async function openIconPicker(key) {
+      if (!els.iconPicker) {
+        return;
+      }
+      state.iconPicker.activeKey = key;
+      state.iconPicker.search = '';
+      state.iconPicker.error = '';
+      if (els.iconPickerSearch) {
+        els.iconPickerSearch.value = '';
+      }
+      renderIconPicker();
+      els.iconPicker.classList.add('is-active');
+      els.iconPicker.removeAttribute('hidden');
+      setTimeout(() => {
+        if (els.iconPickerSearch) {
+          els.iconPickerSearch.focus({ preventScroll: true });
+        } else {
+          els.iconPicker.focus({ preventScroll: true });
+        }
+      }, 0);
+      await ensureIconLibraryLoaded();
+      renderIconPicker();
+    }
+
+    function closeIconPicker() {
+      if (!els.iconPicker) {
+        return;
+      }
+      els.iconPicker.classList.remove('is-active');
+      els.iconPicker.setAttribute('hidden', 'hidden');
+      state.iconPicker.activeKey = '';
+      state.iconPicker.search = '';
+      if (els.iconPickerSearch) {
+        els.iconPickerSearch.value = '';
+      }
+    }
+
+    function renderIconPicker() {
+      if (!els.iconPicker || !state.iconPicker.activeKey) {
+        return;
+      }
+      const key = state.iconPicker.activeKey;
+      const label = formatIconLabel(key);
+      const meta = ICON_METADATA[key] || {};
+      if (els.iconPickerTitle) {
+        els.iconPickerTitle.textContent = `Icon for ${label}`;
+      }
+      if (els.iconPickerSubtitle) {
+        const text = meta.usage ? meta.usage : 'Browse uploaded icons to replace this action.';
+        els.iconPickerSubtitle.textContent = text;
+      }
+      renderIconPickerGrid();
+    }
+
+    function renderIconPickerGrid() {
+      if (!els.iconPickerBody) {
+        return;
+      }
+      if (!state.iconPicker.activeKey) {
+        els.iconPickerBody.innerHTML = '<div class="a4a-icon-picker-empty">Select an icon slot to begin.</div>';
+        return;
+      }
+      if (!config.iconsRestUrl) {
+        els.iconPickerBody.innerHTML = '<div class="a4a-icon-picker-empty">Icon endpoint is not available. Upload SVGs to <code>/wp-content/uploads/fa_icons</code>.</div>';
+        return;
+      }
+      if (state.iconPicker.loading) {
+        els.iconPickerBody.innerHTML = '<div class="a4a-icon-picker-empty">Loading icons...</div>';
+        return;
+      }
+      if (state.iconPicker.error) {
+        els.iconPickerBody.innerHTML = `<div class="a4a-icon-picker-empty">${escapeHtml(state.iconPicker.error)}<div class="mt-2"><button type="button" class="btn btn-outline-primary btn-sm" data-icon-picker-retry="true">Try again</button></div></div>`;
+        return;
+      }
+      const icons = state.iconPicker.icons;
+      if (!icons.length) {
+        els.iconPickerBody.innerHTML = '<div class="a4a-icon-picker-empty">Upload SVG icons to <code>/wp-content/uploads/fa_icons</code> to make them available here.</div>';
+        return;
+      }
+      const query = (state.iconPicker.search || '').trim().toLowerCase();
+      const filtered = query ? icons.filter((iconItem) => iconItem.search.includes(query)) : icons;
+      if (!filtered.length) {
+        els.iconPickerBody.innerHTML = '<div class="a4a-icon-picker-empty">No icons match this search. Try another name.</div>';
+        return;
+      }
+      const currentOverride = sanitizeIconUrl((state.interface.iconOverrides || {})[state.iconPicker.activeKey]);
+      const items = filtered
+        .map((iconItem) => {
+          const isSelected = currentOverride === iconItem.url;
+          const buttonClass = `a4a-icon-picker-button${isSelected ? ' is-selected' : ''}`;
+          return `
+            <button type="button" class="${buttonClass}" data-icon-url="${escapeHtml(iconItem.url)}" data-icon-filename="${escapeHtml(iconItem.filename)}" role="option" aria-selected="${isSelected ? 'true' : 'false'}">
+              <span class="a4a-icon-preview"><img src="${escapeHtml(iconItem.url)}" alt="" loading="lazy" decoding="async" /></span>
+              <span>${escapeHtml(iconItem.name || iconItem.filename)}</span>
+            </button>`;
+        })
+        .join('');
+      els.iconPickerBody.innerHTML = items;
+    }
+
+    async function ensureIconLibraryLoaded() {
+      if (state.iconPicker.loading || state.iconPicker.icons.length) {
+        return;
+      }
+      if (!config.iconsRestUrl) {
+        state.iconPicker.error = 'Icon endpoint is not available.';
+        renderIconPickerGrid();
+        return;
+      }
+      state.iconPicker.loading = true;
+      renderIconPickerGrid();
+      try {
+        const response = await request('GET', config.iconsRestUrl);
+        const icons = Array.isArray(response) ? response : [];
+        state.iconPicker.icons = icons
+          .map((item) => {
+            const url = item && sanitizeIconUrl(item.url);
+            if (!url) {
+              return null;
+            }
+            const filename = typeof item.filename === 'string' && item.filename ? item.filename : url.split('/').pop() || url;
+            const name = typeof item.name === 'string' && item.name ? item.name : filename;
+            const id = typeof item.id === 'string' && item.id ? item.id : sanitizeTitleFallback(name);
+            const search = `${name} ${filename}`.toLowerCase();
+            return { id, name, filename, url, search };
+          })
+          .filter(Boolean);
+        state.iconPicker.error = '';
+      } catch (error) {
+        console.error(error);
+        state.iconPicker.error = error && error.message ? error.message : 'Failed to load icons.';
+      } finally {
+        state.iconPicker.loading = false;
+      }
+      renderIconPickerGrid();
+    }
+
+    function sanitizeTitleFallback(value) {
+      const cleaned = typeof value === 'string' ? value.toLowerCase().replace(/[^a-z0-9]+/g, '-') : '';
+      return cleaned || 'icon';
     }
 
     function sanitizeApiSettings(data) {
@@ -1397,6 +1742,52 @@
 
     renderInterfaceForm();
     renderApiForm();
+
+    if (els.iconSettings) {
+      els.iconSettings.addEventListener('click', handleIconSettingsClick);
+    }
+    if (els.iconPicker) {
+      els.iconPicker.addEventListener('click', (event) => {
+        if (event.target === els.iconPicker || event.target.closest('[data-icon-picker-close]')) {
+          event.preventDefault();
+          closeIconPicker();
+        }
+      });
+      els.iconPicker.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeIconPicker();
+        }
+      });
+    }
+    if (els.iconPickerSearch) {
+      els.iconPickerSearch.addEventListener('input', (event) => {
+        state.iconPicker.search = event.target.value || '';
+        renderIconPickerGrid();
+      });
+    }
+    if (els.iconPickerBody) {
+      els.iconPickerBody.addEventListener('click', (event) => {
+        const retry = event.target.closest('[data-icon-picker-retry]');
+        if (retry) {
+          ensureIconLibraryLoaded();
+          return;
+        }
+        const button = event.target.closest('button[data-icon-url]');
+        if (!button || !state.iconPicker.activeKey) {
+          return;
+        }
+        const url = button.getAttribute('data-icon-url');
+        const sanitizedUrl = sanitizeIconUrl(url);
+        if (!sanitizedUrl) {
+          return;
+        }
+        const overrides = { ...(state.interface.iconOverrides || {}) };
+        overrides[state.iconPicker.activeKey] = sanitizedUrl;
+        handleInterfaceChange({ iconOverrides: overrides });
+        closeIconPicker();
+      });
+    }
 
     if (els.notice) {
       els.notice.addEventListener('click', (event) => {
