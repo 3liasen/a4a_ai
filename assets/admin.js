@@ -103,7 +103,7 @@
     .a4a-icon-picker-grid button { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border: 1px solid rgba(0,0,0,0.1); border-radius: 0.75rem; padding: 0.75rem; background: #ffffff; cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; text-align: center; }
     .a4a-icon-picker-grid button:hover { transform: translateY(-2px); border-color: var(--a4a-color-primary); box-shadow: 0 0.5rem 1.25rem rgba(13,110,253,0.15); }
     .a4a-icon-picker-grid button.is-selected { border-color: var(--a4a-color-primary); background: rgba(13,110,253,0.08); }
-    .a4a-icon-picker-grid button span { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: #495057; }
+    .a4a-icon-picker-grid button .a4a-icon-picker-label { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: #495057; }
     .a4a-icon-picker-empty { text-align: center; padding: 2rem 1rem; color: #6c757d; }
     .a4a-icon-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
   `;
@@ -1600,7 +1600,7 @@
           return `
             <button type="button" class="${buttonClass}" data-icon-url="${escapeHtml(iconItem.url)}" data-icon-filename="${escapeHtml(iconItem.filename)}" role="option" aria-selected="${isSelected ? 'true' : 'false'}">
               <span class="a4a-icon-preview"><img src="${escapeHtml(iconItem.url)}" alt="" loading="lazy" decoding="async" /></span>
-              <span>${escapeHtml(iconItem.name || iconItem.filename)}</span>
+              <span class="a4a-icon-picker-label">${escapeHtml(iconItem.name || iconItem.filename)}</span>
             </button>`;
         })
         .join('');
