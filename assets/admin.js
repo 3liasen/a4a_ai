@@ -633,7 +633,7 @@
           await request('PUT', `${baseUrlsUrl}/${state.urlEditingId}`, payload);
           setNotice('URL updated.', 'success');
         } else {
-          await request('POST', `${baseClientsUrl}/${client.id}/urls`, payload);
+          await request('POST', baseUrlsUrl, payload);
           setNotice('URL created.', 'success');
         }
         resetUrlForm();
