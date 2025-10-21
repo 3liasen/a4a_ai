@@ -551,7 +551,11 @@ final class A4A_AI_Plugin {
             'categories' => [
                 'required' => false,
                 'type' => 'array',
+                'items' => [
+                    'type' => 'integer',
+                ],
                 'sanitize_callback' => [$this, 'sanitize_client_categories'],
+                'default' => [],
             ],
         ];
     }

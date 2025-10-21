@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   const host = document.getElementById('a4a-ai-root');
   if (!host) {
     return;
@@ -543,7 +543,8 @@
       urlEditingId: null,
       loading: false,
       categories: [],
-      categoriesLoading: false
+      categoriesLoading: false,
+      pendingCategories: []
     };
 
     function setNotice(message, type = 'info') {
@@ -584,7 +585,7 @@
         els.select.value = '';
         return;
       }
-      const options = ['<option value="">— Select —</option>'];
+      const options = ['<option value="">- Select -</option>'];
       state.clients.forEach((client) => {
         if (!client) {
           return;
@@ -602,6 +603,7 @@
     }
 
     function resetClientForm() {
+      state.pendingCategories = [];
       if (els.clientId) {
         els.clientId.value = '';
       }
@@ -634,6 +636,7 @@
       if (els.clientDelete) {
         els.clientDelete.classList.remove('d-none');
       }
+      state.pendingCategories = Array.isArray(client.category_ids) ? [...client.category_ids] : [];
     }
 
     function renderClientForm() {
@@ -651,7 +654,7 @@
         return;
       }
       if (state.categoriesLoading) {
-        els.categoriesContainer.innerHTML = '<div class="text-muted small">Loading categories…</div>';
+        els.categoriesContainer.innerHTML = '<div class="text-muted small">Loading categories...</div>';
         return;
       }
       if (!state.categories.length) {
@@ -659,9 +662,10 @@
         return;
       }
 
-      const selected = client && Array.isArray(client.category_ids)
-        ? client.category_ids.map((id) => String(id))
-        : [];
+      const activeSelection = client && Array.isArray(client.category_ids)
+        ? client.category_ids
+        : state.pendingCategories;
+      const selected = Array.isArray(activeSelection) ? activeSelection.map((id) => String(id)) : [];
 
       const rows = state.categories
         .map((category) => {
@@ -692,9 +696,15 @@
       if (!els.categoriesContainer) {
         return [];
       }
-      return Array.from(els.categoriesContainer.querySelectorAll('input[type="checkbox"]:checked'))
+      const values = Array.from(els.categoriesContainer.querySelectorAll('input[type="checkbox"]:checked'))
         .map((input) => parseInt(input.value, 10))
         .filter((value) => Number.isFinite(value) && value > 0);
+      state.pendingCategories = [...values];
+      const client = getSelectedClient();
+      if (client && Array.isArray(client.category_ids)) {
+        client.category_ids = [...values];
+      }
+      return values;
     }
 
     function toggleUrlForm(disabled) {
@@ -792,9 +802,9 @@
         const rows = urls
           .map((url) => {
             const times = formatModified(url.modified_gmt);
-            const relative = times.relative ? escapeHtml(times.relative) : '—';
+            const relative = times.relative ? escapeHtml(times.relative) : '-';
             const absolute = times.absolute ? `<div class="text-muted small">${escapeHtml(times.absolute)}</div>` : '';
-            const schedule = (url.schedule || '').trim() || '—';
+            const schedule = (url.schedule || '').trim() || '-';
             return `
               <tr data-url-id="${url.id}">
                 <td class="text-break"><a href="${escapeHtml(url.url || '#')}" target="_blank" rel="noopener noreferrer">${escapeHtml(url.url || '(no URL)')}</a></td>
@@ -1090,6 +1100,11 @@
       if (els.clientReset) {
         els.clientReset.addEventListener('click', () => {
           renderClientForm();
+        });
+      }
+      if (els.categoriesContainer) {
+        els.categoriesContainer.addEventListener('change', () => {
+          readSelectedCategories();
         });
       }
       if (els.clientDelete) {
@@ -1468,7 +1483,7 @@
                       </tr>
                     </thead>
                     <tbody id="a4a-category-table">
-                      <tr><td colspan="3" class="text-center text-muted py-3">Loading categories…</td></tr>
+                      <tr><td colspan="3" class="text-center text-muted py-3">Loading categories...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -2005,7 +2020,7 @@
                 <div class="col-md-6">
                   <label class="form-label" for="a4a-client">Client</label>
                   <select class="form-select" id="a4a-client">
-                    <option value="">— Unassigned —</option>
+                    <option value="">- Unassigned -</option>
                   </select>
                   <div class="form-text">Organise targets under a client profile.</div>
                 </div>
@@ -2316,7 +2331,7 @@
         const clientName = getClientName(item.client_id);
         const clientCell = clientName
           ? `<span class="badge text-bg-light text-dark">${escapeHtml(clientName)}</span>`
-          : '<span class="text-muted">—</span>';
+          : '<span class="text-muted">-</span>';
         return `
           <tr class="${selectedClass}" data-row-id="${item.id}">
             <td>
@@ -2360,7 +2375,7 @@
       return;
     }
     const previousValue = preserveCurrent ? els.clientField.value : '';
-    const options = ['<option value="">— Unassigned —</option>'];
+    const options = ['<option value="">- Unassigned -</option>'];
     const sortedClients = [...state.clients].sort((a, b) => {
       const nameA = (a && a.name ? a.name : '').toLowerCase();
       const nameB = (b && b.name ? b.name : '').toLowerCase();
@@ -2821,5 +2836,3 @@
   fetchItems();
 
 })();
-
-
