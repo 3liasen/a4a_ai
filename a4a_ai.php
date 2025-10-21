@@ -548,6 +548,11 @@ final class A4A_AI_Plugin {
                 'required' => false,
                 'type' => 'boolean',
             ],
+            'categories' => [
+                'required' => false,
+                'type' => 'array',
+                'sanitize_callback' => [$this, 'sanitize_client_categories'],
+            ],
         ];
     }
 
@@ -617,6 +622,23 @@ final class A4A_AI_Plugin {
         $post = get_post($client_id);
 
         return $post && $post->post_type === self::CLIENT_CPT;
+    }
+
+    /**
+     * Validates an incoming category reference.
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function validate_category_param($value) {
+        $category_id = absint($value);
+        if ($category_id === 0) {
+            return true;
+        }
+
+        $post = get_post($category_id);
+
+        return $post && $post->post_type === self::CATEGORY_CPT;
     }
 
     /**
@@ -782,6 +804,7 @@ final class A4A_AI_Plugin {
             'prompt' => (string) get_post_meta($post->ID, '_a4a_prompt', true),
             'returned_data' => (string) get_post_meta($post->ID, '_a4a_returned_data', true),
             'run_requested_gmt' => (string) get_post_meta($post->ID, '_a4a_run_requested_gmt', true),
+            'last_run_gmt' => (string) get_post_meta($post->ID, '_a4a_last_run_gmt', true),
             'modified_gmt' => $post->post_modified_gmt,
         ];
     }
@@ -850,12 +873,231 @@ final class A4A_AI_Plugin {
             return $post;
         }
 
-        $timestamp = current_time('mysql', true);
-        update_post_meta($post->ID, '_a4a_run_requested_gmt', $timestamp);
+        $processed = $this->execute_crawl($post);
+        if (is_wp_error($processed)) {
+            return $processed;
+        }
 
         $updated = get_post($post->ID);
 
         return rest_ensure_response($this->map_post_to_item($updated));
+    }
+
+    /**
+     * Executes the crawling workflow for a stored URL.
+     *
+     * @param WP_Post $post
+     * @return true|WP_Error
+     */
+    private function execute_crawl($post) {
+        $settings = $this->get_plugin_settings();
+        if (empty($settings['api_key'])) {
+            return new WP_Error('missing_ai_credentials', __('AI credentials are not configured. Add an API key in Settings before running crawls.', 'a4a-ai'), ['status' => 400]);
+        }
+
+        $url = get_post_meta($post->ID, '_a4a_url', true);
+        if ($url === '') {
+            $url = (string) $post->post_title;
+        }
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return new WP_Error('invalid_url', __('Stored URL is invalid.', 'a4a-ai'), ['status' => 400]);
+        }
+
+        $response = wp_remote_get($url, [
+            'timeout' => 20,
+            'redirection' => 5,
+            'user-agent' => 'axs4all-ai-crawler/1.0 (+https://github.com/)',
+        ]);
+        if (is_wp_error($response)) {
+            return new WP_Error('crawl_failed', sprintf(__('Failed to retrieve the URL: %s', 'a4a-ai'), $response->get_error_message()), ['status' => 502]);
+        }
+
+        $status = wp_remote_retrieve_response_code($response);
+        if ($status < 200 || $status >= 300) {
+            return new WP_Error('crawl_failed', sprintf(__('Received unexpected status code %d when fetching the URL.', 'a4a-ai'), $status), ['status' => 502]);
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (!is_string($body) || trim($body) === '') {
+            return new WP_Error('crawl_failed', __('The fetched page was empty.', 'a4a-ai'), ['status' => 502]);
+        }
+
+        $client_id = (int) get_post_meta($post->ID, '_a4a_client_id', true);
+        $categories = $client_id > 0 ? $this->get_client_categories_with_options($client_id) : [];
+        $prompt = (string) get_post_meta($post->ID, '_a4a_prompt', true);
+        $excerpt = $this->prepare_page_excerpt($body);
+        $timestamp = gmdate('c');
+
+        $system_message = 'You are an accessibility-focused analyst. Evaluate website content and respond strictly with valid XML following the provided schema.';
+        $user_message = $this->build_ai_user_message($url, $prompt, $categories, $excerpt, $timestamp, $settings);
+
+        $ai_response = $this->dispatch_ai_request(
+            [
+                ['role' => 'system', 'content' => $system_message],
+                ['role' => 'user', 'content' => $user_message],
+            ],
+            $settings
+        );
+
+        if (is_wp_error($ai_response)) {
+            return $ai_response;
+        }
+
+        $xml = $this->sanitize_xml_field($ai_response);
+        update_post_meta($post->ID, '_a4a_returned_data', $xml);
+
+        $run_time = current_time('mysql', true);
+        update_post_meta($post->ID, '_a4a_run_requested_gmt', $run_time);
+        update_post_meta($post->ID, '_a4a_last_run_gmt', $run_time);
+
+        $run_time_local = function_exists('get_date_from_gmt') ? get_date_from_gmt($run_time) : current_time('mysql', false);
+        wp_update_post([
+            'ID' => $post->ID,
+            'post_modified' => $run_time_local,
+            'post_modified_gmt' => $run_time,
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Builds the user prompt supplied to the AI service.
+     *
+     * @param string $url
+     * @param string $instructions
+     * @param array  $categories
+     * @param string $excerpt
+     * @param string $timestamp
+     * @param array  $settings
+     * @return string
+     */
+    private function build_ai_user_message($url, $instructions, $categories, $excerpt, $timestamp, $settings) {
+        $lines = [];
+        $lines[] = sprintf('Evaluate the webpage at %s.', $url);
+
+        $instructions = trim((string) $instructions);
+        if ($instructions !== '') {
+            $lines[] = 'Operator instructions:';
+            $lines[] = $instructions;
+        }
+
+        if ($categories) {
+            $lines[] = 'Categories to assess:';
+            foreach ($categories as $category) {
+                $name = $category['name'];
+                $options = $category['options'];
+                $option_list = $options ? implode(', ', $options) : 'No options supplied';
+                $lines[] = sprintf('- %s (ID %d): options => %s', $name, $category['id'], $option_list);
+            }
+        } else {
+            $lines[] = 'No categories are configured for this client. Indicate this in the XML output.';
+        }
+
+        $model = !empty($settings['api_model']) ? $settings['api_model'] : 'gpt-4o-mini';
+
+        $lines[] = 'Return XML using this schema (no additional text):';
+        $lines[] = '<results url="{url}" analysed_at="{iso8601}" model="{model}">';
+        $lines[] = '  <category name="{category_name}" matched_option="{option_value}" confidence="{0-1}">';
+        $lines[] = '    <reason>Short justification for the selection.</reason>';
+        $lines[] = '  </category>';
+        $lines[] = '</results>';
+        $lines[] = 'For any category where no option fits, use matched_option="none" and confidence="0".';
+        $lines[] = 'Do not include any explanations outside the XML.';
+
+        $lines[] = 'Page excerpt (truncated):';
+        $lines[] = $excerpt !== '' ? $excerpt : '[No textual content extracted]';
+
+        $replacements = [
+            '{url}' => $url,
+            '{iso8601}' => $timestamp,
+            '{model}' => $model,
+        ];
+
+        $message = implode("\n\n", $lines);
+
+        return strtr($message, $replacements);
+    }
+
+    /**
+     * Dispatches a request to the configured AI provider.
+     *
+     * @param array $messages
+     * @param array $settings
+     * @return string|WP_Error
+     */
+    private function dispatch_ai_request($messages, $settings) {
+        $model = !empty($settings['api_model']) ? $settings['api_model'] : 'gpt-4o-mini';
+        $base = !empty($settings['api_base']) ? rtrim($settings['api_base'], '/') : 'https://api.openai.com/v1';
+        $endpoint = $base . '/chat/completions';
+
+        $body = [
+            'model' => $model,
+            'messages' => array_values($messages),
+            'temperature' => 0,
+        ];
+
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $settings['api_key'],
+        ];
+
+        if (!empty($settings['api_organization'])) {
+            $headers['OpenAI-Organization'] = $settings['api_organization'];
+        }
+
+        $response = wp_remote_post(
+            $endpoint,
+            [
+                'timeout' => 30,
+                'headers' => $headers,
+                'body' => wp_json_encode($body),
+            ]
+        );
+
+        if (is_wp_error($response)) {
+            return new WP_Error('ai_request_failed', sprintf(__('Failed to contact the AI provider: %s', 'a4a-ai'), $response->get_error_message()), ['status' => 502]);
+        }
+
+        $status = wp_remote_retrieve_response_code($response);
+        $raw_body = wp_remote_retrieve_body($response);
+        if ($status < 200 || $status >= 300) {
+            return new WP_Error('ai_request_failed', sprintf(__('AI provider returned a %d error: %s', 'a4a-ai'), $status, $raw_body), ['status' => $status]);
+        }
+
+        $decoded = json_decode($raw_body, true);
+        if (!is_array($decoded) || empty($decoded['choices'][0]['message']['content'])) {
+            return new WP_Error('ai_response_invalid', __('The AI provider returned an unexpected response.', 'a4a-ai'), ['status' => 502]);
+        }
+
+        return (string) $decoded['choices'][0]['message']['content'];
+    }
+
+    /**
+     * Reduces raw HTML into a trimmed excerpt for AI analysis.
+     *
+     * @param string $html
+     * @param int    $max_length
+     * @return string
+     */
+    private function prepare_page_excerpt($html, $max_length = 6000) {
+        $text = wp_strip_all_tags($html, true);
+        $text = preg_replace('/\s+/u', ' ', $text);
+        if ($text === null) {
+            $text = '';
+        }
+        $text = trim($text);
+
+        if (function_exists('mb_substr')) {
+            if (mb_strlen($text, 'UTF-8') > $max_length) {
+                $text = mb_substr($text, 0, $max_length, 'UTF-8');
+            }
+        } else {
+            if (strlen($text) > $max_length) {
+                $text = substr($text, 0, $max_length);
+            }
+        }
+
+        return $text;
     }
 
     /**
@@ -1156,14 +1398,16 @@ final class A4A_AI_Plugin {
      * @param bool            $partial
      */
     private function persist_client_meta($post_id, $request, $partial = false) {
-        if ($partial && !$request->offsetExists('notes')) {
-            return;
+        if (!$partial || $request->offsetExists('notes')) {
+            $notes = $request->get_param('notes');
+            $notes = is_string($notes) ? sanitize_textarea_field($notes) : '';
+            update_post_meta($post_id, '_a4a_client_notes', $notes);
         }
 
-        $notes = $request->get_param('notes');
-        $notes = is_string($notes) ? sanitize_textarea_field($notes) : '';
-
-        update_post_meta($post_id, '_a4a_client_notes', $notes);
+        if (!$partial || $request->offsetExists('categories')) {
+            $categories = $this->sanitize_client_categories($request->get_param('categories'));
+            update_post_meta($post_id, '_a4a_client_categories', $categories);
+        }
     }
 
     /**
@@ -1180,6 +1424,7 @@ final class A4A_AI_Plugin {
             'id' => $client_id,
             'name' => (string) $post->post_title,
             'notes' => (string) get_post_meta($client_id, '_a4a_client_notes', true),
+            'category_ids' => $this->get_client_category_ids($client_id),
             'created_gmt' => $post->post_date_gmt,
             'modified_gmt' => $post->post_modified_gmt,
             'url_count' => $this->count_urls_for_client($client_id),
@@ -1303,6 +1548,90 @@ final class A4A_AI_Plugin {
         }
 
         return array_values(array_unique($sanitised));
+    }
+
+    /**
+     * Sanitises category assignments for a client.
+     *
+     * @param mixed $value
+     * @return array
+     */
+    public function sanitize_client_categories($value) {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $sanitised = [];
+        foreach ($value as $maybe_id) {
+            $id = absint($maybe_id);
+            if ($id > 0 && $this->validate_category_param($id)) {
+                $sanitised[$id] = $id;
+            }
+        }
+
+        return array_values($sanitised);
+    }
+
+    /**
+     * Retrieves the category identifiers allocated to a client.
+     *
+     * @param int $client_id
+     * @return array
+     */
+    private function get_client_category_ids($client_id) {
+        $stored = get_post_meta($client_id, '_a4a_client_categories', true);
+        if (!is_array($stored)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($stored as $maybe_id) {
+            $id = absint($maybe_id);
+            if ($id > 0 && $this->validate_category_param($id)) {
+                $ids[$id] = $id;
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    /**
+     * Retrieves categories and options for a given client.
+     *
+     * @param int $client_id
+     * @return array
+     */
+    private function get_client_categories_with_options($client_id) {
+        $ids = $this->get_client_category_ids($client_id);
+        if (!$ids) {
+            return [];
+        }
+
+        $categories = get_posts([
+            'post_type' => self::CATEGORY_CPT,
+            'post__in' => $ids,
+            'orderby' => 'post__in',
+            'posts_per_page' => -1,
+        ]);
+
+        if (!is_array($categories) || !$categories) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($categories as $category) {
+            $options = get_post_meta($category->ID, '_a4a_category_options', true);
+            if (!is_array($options)) {
+                $options = [];
+            }
+            $items[] = [
+                'id' => (int) $category->ID,
+                'name' => (string) $category->post_title,
+                'options' => $this->sanitize_category_options($options),
+            ];
+        }
+
+        return $items;
     }
 
     /**

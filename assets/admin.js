@@ -437,6 +437,11 @@
                   <label class="form-label" for="a4a-client-notes">Notes</label>
                   <textarea class="form-control" id="a4a-client-notes" rows="3" placeholder="Optional notes, goals, or contacts"></textarea>
                 </div>
+                <div>
+                  <label class="form-label d-block">Categories</label>
+                  <div id="a4a-client-categories" class="vstack gap-2 border rounded p-3 bg-light-subtle"></div>
+                  <div class="form-text">Tick the categories this client cares about during crawls.</div>
+                </div>
                 <div class="d-flex flex-wrap gap-2">
                   <button type="submit" class="btn btn-primary" id="a4a-client-save">${icon('save', 'me-1')}Save Client</button>
                   <button type="button" class="btn btn-outline-secondary" id="a4a-client-reset">${icon('eraser', 'me-1')}Reset</button>
@@ -513,6 +518,7 @@
       clientId: app.querySelector('#a4a-client-id'),
       clientName: app.querySelector('#a4a-client-name'),
       clientNotes: app.querySelector('#a4a-client-notes'),
+      categoriesContainer: app.querySelector('#a4a-client-categories'),
       clientSave: app.querySelector('#a4a-client-save'),
       clientReset: app.querySelector('#a4a-client-reset'),
       clientDelete: app.querySelector('#a4a-client-delete'),
@@ -535,7 +541,9 @@
       clients: [],
       selectedId: null,
       urlEditingId: null,
-      loading: false
+      loading: false,
+      categories: [],
+      categoriesLoading: false
     };
 
     function setNotice(message, type = 'info') {
@@ -606,6 +614,7 @@
       if (els.clientDelete) {
         els.clientDelete.classList.add('d-none');
       }
+      renderClientCategories(null);
     }
 
     function populateClientForm(client) {
@@ -634,6 +643,58 @@
       } else {
         resetClientForm();
       }
+      renderClientCategories(client);
+    }
+
+    function renderClientCategories(client) {
+      if (!els.categoriesContainer) {
+        return;
+      }
+      if (state.categoriesLoading) {
+        els.categoriesContainer.innerHTML = '<div class="text-muted small">Loading categories…</div>';
+        return;
+      }
+      if (!state.categories.length) {
+        els.categoriesContainer.innerHTML = '<div class="text-muted small">No categories available yet.</div>';
+        return;
+      }
+
+      const selected = client && Array.isArray(client.category_ids)
+        ? client.category_ids.map((id) => String(id))
+        : [];
+
+      const rows = state.categories
+        .map((category) => {
+          if (!category) {
+            return '';
+          }
+          const id = String(category.id);
+          const label = escapeHtml(category.name || `Category #${category.id}`);
+          const description = Array.isArray(category.options) && category.options.length
+            ? `<div class="form-text mb-0">Options: ${escapeHtml(category.options.join(', '))}</div>`
+            : '';
+          const checked = selected.includes(id) ? ' checked' : '';
+          const inputId = `a4a-client-category-${id}`;
+          return `
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="${id}" id="${inputId}"${checked}>
+              <label class="form-check-label fw-semibold" for="${inputId}">${label}</label>
+              ${description}
+            </div>
+          `;
+        })
+        .join('');
+
+      els.categoriesContainer.innerHTML = rows;
+    }
+
+    function readSelectedCategories() {
+      if (!els.categoriesContainer) {
+        return [];
+      }
+      return Array.from(els.categoriesContainer.querySelectorAll('input[type="checkbox"]:checked'))
+        .map((input) => parseInt(input.value, 10))
+        .filter((value) => Number.isFinite(value) && value > 0);
     }
 
     function toggleUrlForm(disabled) {
@@ -759,7 +820,14 @@
       setBusy(true);
       try {
         const response = await request('GET', `${baseClientsUrl}?with_urls=1`);
-        state.clients = Array.isArray(response) ? response : [];
+        state.clients = Array.isArray(response)
+          ? response.map((client) => ({
+              ...client,
+              category_ids: Array.isArray(client.category_ids)
+                ? client.category_ids.map((id) => Number(id))
+                : []
+            }))
+          : [];
         if (state.clients.length) {
           const exists = state.selectedId && state.clients.some((client) => client && client.id === state.selectedId);
           if (!exists) {
@@ -785,6 +853,33 @@
       }
     }
 
+    async function fetchCategoriesForClients() {
+      if (!config.categoriesRestUrl) {
+        state.categories = [];
+        renderClientCategories(getSelectedClient());
+        return;
+      }
+      state.categoriesLoading = true;
+      renderClientCategories(getSelectedClient());
+      try {
+        const base = config.categoriesRestUrl.replace(/\/$/, '');
+        const response = await request('GET', `${base}?per_page=100`);
+        state.categories = Array.isArray(response)
+          ? response.map((category) => ({
+              ...category,
+              options: Array.isArray(category.options) ? category.options : []
+            }))
+          : [];
+        renderClientCategories(getSelectedClient());
+      } catch (error) {
+        console.error(error);
+        state.categories = [];
+        renderClientCategories(getSelectedClient());
+      } finally {
+        state.categoriesLoading = false;
+      }
+    }
+
     async function handleClientSubmit(event) {
       event.preventDefault();
       const name = els.clientName ? els.clientName.value.trim() : '';
@@ -797,7 +892,8 @@
       }
       const payload = {
         name,
-        notes: els.clientNotes ? els.clientNotes.value.trim() : ''
+        notes: els.clientNotes ? els.clientNotes.value.trim() : '',
+        categories: readSelectedCategories()
       };
       setBusy(true);
       try {
@@ -927,7 +1023,7 @@
       setBusy(true);
       try {
         await request('POST', endpoint);
-        setNotice('Run requested for this URL.', 'success');
+        setNotice('Crawl completed for this URL.', 'success');
         await fetchClients();
       } catch (error) {
         console.error(error);
@@ -980,7 +1076,10 @@
         els.select.addEventListener('change', handleSelectChange);
       }
       if (els.refresh) {
-        els.refresh.addEventListener('click', fetchClients);
+        els.refresh.addEventListener('click', () => {
+          fetchCategoriesForClients();
+          fetchClients();
+        });
       }
       if (els.newClient) {
         els.newClient.addEventListener('click', handleNewClient);
@@ -1035,6 +1134,7 @@
     resetUrlForm();
     toggleUrlForm(true);
     attachEvents();
+    fetchCategoriesForClients();
     fetchClients();
   }
 
@@ -2535,7 +2635,7 @@
         state.selectedId = updated.id;
         resortItems();
         refreshUI();
-        setNotice('Run requested. This target will be processed shortly.', 'success');
+        setNotice('Crawl complete. Review the updated XML below.', 'success');
       }
     } catch (error) {
       console.error(error);
