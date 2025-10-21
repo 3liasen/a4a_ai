@@ -17,6 +17,7 @@ final class A4A_AI_Plugin {
     const CPT = 'a4a_url';
     const CLIENT_CPT = 'a4a_client';
     const CATEGORY_CPT = 'a4a_category';
+    const SETTINGS_OPTION = 'a4a_ai_settings';
 
     /**
      * @var A4A_AI_Plugin|null
@@ -216,6 +217,16 @@ final class A4A_AI_Plugin {
             [$this, 'render_categories_page']
         );
         $this->store_admin_hook($categories_hook);
+
+        $settings_hook = add_submenu_page(
+            self::SLUG,
+            __('Settings', 'a4a-ai'),
+            __('Settings', 'a4a-ai'),
+            $capability,
+            self::SLUG . '-settings',
+            [$this, 'render_settings_page']
+        );
+        $this->store_admin_hook($settings_hook);
     }
 
     /**
@@ -237,6 +248,13 @@ final class A4A_AI_Plugin {
      */
     public function render_categories_page() {
         $this->render_admin_app('categories');
+    }
+
+    /**
+     * Renders the settings screen.
+     */
+    public function render_settings_page() {
+        $this->render_admin_app('settings');
     }
 
     /**
@@ -281,6 +299,7 @@ final class A4A_AI_Plugin {
                 'restUrl' => esc_url_raw(rest_url('a4a/v1/urls')),
                 'clientsRestUrl' => esc_url_raw(rest_url('a4a/v1/clients')),
                 'categoriesRestUrl' => esc_url_raw(rest_url('a4a/v1/categories')),
+                'settingsRestUrl' => esc_url_raw(rest_url('a4a/v1/settings')),
                 'runUrlTemplate' => esc_url_raw(rest_url('a4a/v1/urls/%d/run')),
                 'defaultView' => $this->determine_default_view($hook),
                 'nonce' => wp_create_nonce('wp_rest'),
@@ -304,6 +323,8 @@ final class A4A_AI_Plugin {
                 return 'clients';
             case 'a4a-ai_page_' . self::SLUG . '-categories':
                 return 'categories';
+            case 'a4a-ai_page_' . self::SLUG . '-settings':
+                return 'settings';
             default:
                 return 'urls';
         }
@@ -447,6 +468,24 @@ final class A4A_AI_Plugin {
                 ],
             ]
         );
+
+        register_rest_route(
+            'a4a/v1',
+            '/settings',
+            [
+                [
+                    'methods' => WP_REST_Server::READABLE,
+                    'callback' => [$this, 'rest_get_settings'],
+                    'permission_callback' => [$this, 'can_manage'],
+                ],
+                [
+                    'methods' => WP_REST_Server::EDITABLE,
+                    'callback' => [$this, 'rest_update_settings'],
+                    'permission_callback' => [$this, 'can_manage'],
+                    'args' => $this->settings_args(),
+                ],
+            ]
+        );
     }
 
     /**
@@ -525,6 +564,31 @@ final class A4A_AI_Plugin {
                 'required' => false,
                 'type' => 'array',
                 'sanitize_callback' => [$this, 'sanitize_category_options'],
+            ],
+        ];
+    }
+
+    private function settings_args() {
+        return [
+            'provider' => [
+                'required' => false,
+                'type' => 'string',
+            ],
+            'api_base' => [
+                'required' => false,
+                'type' => 'string',
+            ],
+            'api_model' => [
+                'required' => false,
+                'type' => 'string',
+            ],
+            'api_organization' => [
+                'required' => false,
+                'type' => 'string',
+            ],
+            'api_key' => [
+                'required' => false,
+                'type' => 'string',
             ],
         ];
     }
@@ -1053,6 +1117,38 @@ final class A4A_AI_Plugin {
     }
 
     /**
+     * Retrieves plugin-level settings.
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response
+     */
+    public function rest_get_settings($request) {
+        return rest_ensure_response($this->get_plugin_settings());
+    }
+
+    /**
+     * Updates plugin-level settings.
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response
+     */
+    public function rest_update_settings($request) {
+        $payload = [
+            'provider' => $request->get_param('provider'),
+            'api_base' => $request->get_param('api_base'),
+            'api_model' => $request->get_param('api_model'),
+            'api_organization' => $request->get_param('api_organization'),
+            'api_key' => $request->get_param('api_key'),
+        ];
+
+        $sanitised = $this->sanitize_settings_payload($payload);
+
+        update_option(self::SETTINGS_OPTION, $sanitised, false);
+
+        return rest_ensure_response($sanitised);
+    }
+
+    /**
      * Persists client meta data.
      *
      * @param int             $post_id
@@ -1207,6 +1303,91 @@ final class A4A_AI_Plugin {
         }
 
         return array_values(array_unique($sanitised));
+    }
+
+    /**
+     * Retrieves settings from the WordPress options table.
+     *
+     * @return array
+     */
+    private function get_plugin_settings() {
+        $stored = get_option(self::SETTINGS_OPTION, []);
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        return $this->sanitize_settings_payload($stored);
+    }
+
+    /**
+     * Sanitises payload for plugin settings.
+     *
+     * @param array $values
+     * @return array
+     */
+    private function sanitize_settings_payload($values) {
+        $defaults = [
+            'provider' => '',
+            'api_base' => '',
+            'api_model' => '',
+            'api_organization' => '',
+            'api_key' => '',
+        ];
+
+        $values = wp_parse_args(is_array($values) ? $values : [], $defaults);
+
+        return [
+            'provider' => sanitize_text_field(wp_unslash($values['provider'])),
+            'api_base' => $this->sanitize_api_base($values['api_base']),
+            'api_model' => sanitize_text_field(wp_unslash($values['api_model'])),
+            'api_organization' => sanitize_text_field(wp_unslash($values['api_organization'])),
+            'api_key' => $this->sanitize_api_key($values['api_key']),
+        ];
+    }
+
+    /**
+     * Normalises the API base value while preserving custom endpoints.
+     *
+     * @param string $value
+     * @return string
+     */
+    private function sanitize_api_base($value) {
+        if (!is_string($value)) {
+            return '';
+        }
+
+        $value = trim(wp_unslash($value));
+        if ($value === '') {
+            return '';
+        }
+
+        $validated = esc_url_raw($value);
+        if (!empty($validated)) {
+            return $validated;
+        }
+
+        return sanitize_text_field($value);
+    }
+
+    /**
+     * Sanitises API keys allowing typical token characters.
+     *
+     * @param string $value
+     * @return string
+     */
+    private function sanitize_api_key($value) {
+        if (!is_string($value)) {
+            return '';
+        }
+
+        $value = trim(wp_unslash($value));
+        if ($value === '') {
+            return '';
+        }
+
+        $value = substr($value, 0, 255);
+
+        return preg_replace('/[^A-Za-z0-9_\-\=\.\:\|\+]/', '', $value);
     }
 
     /**

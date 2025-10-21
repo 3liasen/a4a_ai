@@ -49,7 +49,7 @@
       --a4a-color-danger-border: rgba(220, 53, 69, 0.35);
       --a4a-icon-scale: 1;
     }
-    input,
+    input:not([type="color"]),
     textarea,
     select {
       background: #ffffff !important;
@@ -63,6 +63,14 @@
       border: 1px solid #000000 !important;
       box-shadow: 0 0 0 0.2rem rgba(0,0,0,0.1) !important;
       outline: none;
+    }
+    input[type="color"] {
+      padding: 0.25rem;
+      border: 1px solid #000000 !important;
+      border-radius: 0.5rem;
+      background: transparent !important;
+      width: 100%;
+      height: 2.75rem;
     }
     .a4a-busy { position: relative; }
     .a4a-busy::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.65); border-radius: 0.75rem; z-index: 10; }
@@ -107,6 +115,244 @@
     circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`
   });
 
+  const STORAGE_KEY = 'a4a-ai-settings';
+  const DEFAULT_SETTINGS = Object.freeze({
+    primaryColor: '#0d6efd',
+    successColor: '#198754',
+    dangerColor: '#dc3545',
+    iconScale: 1
+  });
+
+  function normalizeHex(value) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    let hex = value.trim();
+    if (!hex) {
+      return null;
+    }
+    if (hex.startsWith('#')) {
+      hex = hex.slice(1);
+    }
+    if (hex.length === 3) {
+      hex = hex.split('').map((ch) => ch + ch).join('');
+    }
+    if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+      return null;
+    }
+    return `#${hex.toLowerCase()}`;
+  }
+
+  function hexToRgb(hex) {
+    const normalized = normalizeHex(hex);
+    if (!normalized) {
+      return null;
+    }
+    const value = parseInt(normalized.slice(1), 16);
+    return {
+      r: (value >> 16) & 255,
+      g: (value >> 8) & 255,
+      b: value & 255,
+      hex: normalized
+    };
+  }
+
+  function hexToRgba(hex, alpha) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) {
+      return `rgba(0, 0, 0, ${typeof alpha === 'number' ? alpha : 1})`;
+    }
+    const a = typeof alpha === 'number' ? Math.min(1, Math.max(0, alpha)) : 1;
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
+  }
+
+  function shadeColor(hex, percent) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) {
+      return hex;
+    }
+    const ratio = Math.max(-1, Math.min(1, percent));
+    const adjust = (channel) => {
+      if (ratio < 0) {
+        return Math.round(channel * (1 + ratio));
+      }
+      return Math.round(channel + (255 - channel) * ratio);
+    };
+    const r = adjust(rgb.r);
+    const g = adjust(rgb.g);
+    const b = adjust(rgb.b);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function clampIconScale(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      return DEFAULT_SETTINGS.iconScale;
+    }
+    return Math.min(1.75, Math.max(0.75, Number(num.toFixed(2))));
+  }
+
+  function loadSettings() {
+    const settings = { ...DEFAULT_SETTINGS };
+    try {
+      if (typeof window.localStorage === 'undefined') {
+        return settings;
+      }
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        return settings;
+      }
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === 'object') {
+        if (normalizeHex(parsed.primaryColor)) {
+          settings.primaryColor = normalizeHex(parsed.primaryColor);
+        }
+        if (normalizeHex(parsed.successColor)) {
+          settings.successColor = normalizeHex(parsed.successColor);
+        }
+        if (normalizeHex(parsed.dangerColor)) {
+          settings.dangerColor = normalizeHex(parsed.dangerColor);
+        }
+        if (parsed.iconScale !== undefined) {
+          settings.iconScale = clampIconScale(parsed.iconScale);
+        }
+      }
+    } catch (error) {
+      console.warn('axs4all - AI: unable to parse saved settings, using defaults.', error);
+    }
+    return settings;
+  }
+
+  function saveSettings(settings) {
+    try {
+      if (typeof window.localStorage === 'undefined') {
+        return;
+      }
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.warn('axs4all - AI: unable to persist settings.', error);
+    }
+  }
+
+  function applySettingsToTheme(settings) {
+    const primary = normalizeHex(settings.primaryColor) || DEFAULT_SETTINGS.primaryColor;
+    const success = normalizeHex(settings.successColor) || DEFAULT_SETTINGS.successColor;
+    const danger = normalizeHex(settings.dangerColor) || DEFAULT_SETTINGS.dangerColor;
+    const iconScale = clampIconScale(settings.iconScale);
+
+    const primaryHover = shadeColor(primary, -0.1);
+    const primaryActive = shadeColor(primary, -0.2);
+    const outlinePrimaryBg = hexToRgba(primary, 0.12);
+    const outlineDangerBg = hexToRgba(danger, 0.12);
+
+    themeStyle.textContent = `
+      :host {
+        --a4a-color-primary: ${primary};
+        --a4a-color-success: ${success};
+        --a4a-color-danger: ${danger};
+        --a4a-color-success-bg: ${hexToRgba(success, 0.12)};
+        --a4a-color-success-border: ${hexToRgba(success, 0.35)};
+        --a4a-color-danger-bg: ${hexToRgba(danger, 0.12)};
+        --a4a-color-danger-border: ${hexToRgba(danger, 0.35)};
+        --a4a-icon-scale: ${iconScale};
+      }
+      .btn-primary,
+      .btn-primary:focus,
+      .btn-primary:active {
+        background-color: ${primary};
+        border-color: ${primary};
+      }
+      .btn-primary:hover {
+        background-color: ${primaryHover};
+        border-color: ${primaryHover};
+      }
+      .btn-primary:active {
+        background-color: ${primaryActive};
+        border-color: ${primaryActive};
+      }
+      .btn-outline-primary {
+        color: ${primary};
+        border-color: ${primary};
+      }
+      .btn-outline-primary:hover,
+      .btn-outline-primary:focus,
+      .btn-outline-primary:active {
+        background-color: ${outlinePrimaryBg};
+        border-color: ${primary};
+        color: ${primary};
+      }
+      .btn-outline-danger {
+        color: ${danger};
+        border-color: ${danger};
+      }
+      .btn-outline-danger:hover,
+      .btn-outline-danger:focus,
+      .btn-outline-danger:active {
+        background-color: ${outlineDangerBg};
+        border-color: ${danger};
+        color: ${danger};
+      }
+      .btn-outline-secondary:hover,
+      .btn-outline-secondary:focus,
+      .btn-outline-secondary:active {
+        color: ${primary};
+        border-color: ${primary};
+      }
+      .badge.text-bg-primary {
+        background-color: ${outlinePrimaryBg};
+        color: ${primary};
+      }
+      .a4a-schedule-badge--scheduled {
+        background-color: ${hexToRgba(success, 0.12)};
+        border-color: ${hexToRgba(success, 0.35)};
+        color: ${success};
+      }
+      .a4a-schedule-badge--adhoc {
+        background-color: ${hexToRgba(danger, 0.12)};
+        border-color: ${hexToRgba(danger, 0.35)};
+        color: ${danger};
+      }
+      .a4a-schedule-text--scheduled,
+      .text-success {
+        color: ${success} !important;
+      }
+      .a4a-schedule-text--adhoc,
+      .text-danger {
+        color: ${danger} !important;
+      }
+    `;
+
+    return {
+      primaryColor: primary,
+      successColor: success,
+      dangerColor: danger,
+      iconScale
+    };
+  }
+
+  const settingsState = {
+    value: (() => {
+      const initial = loadSettings();
+      const sanitized = applySettingsToTheme(initial);
+      if (JSON.stringify(initial) !== JSON.stringify(sanitized)) {
+        saveSettings(sanitized);
+      }
+      return sanitized;
+    })()
+  };
+
+  function updateSettingsState(partial) {
+    const merged = { ...settingsState.value, ...partial };
+    const sanitized = applySettingsToTheme(merged);
+    settingsState.value = sanitized;
+    saveSettings(sanitized);
+    return sanitized;
+  }
+
+  function resetSettingsState() {
+    return updateSettingsState({ ...DEFAULT_SETTINGS });
+  }
+
   function icon(name, extraClass = '') {
     const svg = ICONS[name] || ICONS.circle;
     const extra = extraClass ? ' ' + extraClass : '';
@@ -149,6 +395,11 @@
 
   if (defaultView === 'categories') {
     initCategories();
+    return;
+  }
+
+  if (defaultView === 'settings') {
+    initSettings();
     return;
   }
 
@@ -787,6 +1038,304 @@
     fetchClients();
   }
 
+  function initSettings() {
+    const settingsEndpoint = typeof config.settingsRestUrl === 'string' ? config.settingsRestUrl.replace(/\/$/, '') : '';
+
+    const markup = `
+      <div class="bg-light min-vh-100">
+        <div class="container py-4">
+          <div class="mb-4">
+            <h1 class="h3 mb-1">Settings</h1>
+            <p class="text-muted mb-0">Adjust the admin interface and configure AI provider access.</p>
+          </div>
+          <div id="a4a-settings-notice" class="alert d-none" role="alert"></div>
+          <div class="row g-4">
+            <div class="col-12 col-xl-6">
+              <div class="card shadow-sm h-100">
+                <div class="card-header">
+                  <h2 class="h6 mb-0">Interface</h2>
+                </div>
+                <div class="card-body">
+                  <form id="a4a-interface-form" class="vstack gap-3">
+                    <div>
+                      <label class="form-label" for="a4a-setting-primary">Primary Color</label>
+                      <input type="color" class="form-control form-control-color" id="a4a-setting-primary" aria-label="Pick primary color" />
+                    </div>
+                    <div>
+                      <label class="form-label" for="a4a-setting-success">Schedule Success Color</label>
+                      <input type="color" class="form-control form-control-color" id="a4a-setting-success" aria-label="Pick scheduled color" />
+                    </div>
+                    <div>
+                      <label class="form-label" for="a4a-setting-danger">Schedule Pending Color</label>
+                      <input type="color" class="form-control form-control-color" id="a4a-setting-danger" aria-label="Pick ad hoc color" />
+                    </div>
+                    <div>
+                      <label class="form-label" for="a4a-setting-icon">Icon Size</label>
+                      <input type="range" class="form-range" id="a4a-setting-icon" min="0.75" max="1.75" step="0.05" />
+                      <div class="form-text">Adjust the multiplier applied to interface icons. Current: <span id="a4a-setting-icon-label">100%</span></div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                      <button type="button" class="btn btn-outline-secondary btn-sm" id="a4a-settings-reset">${icon('eraser', 'me-1')}Reset defaults</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-xl-6">
+              <div class="card shadow-sm h-100">
+                <div class="card-header">
+                  <h2 class="h6 mb-0">AI Provider</h2>
+                </div>
+                <div class="card-body">
+                  <form id="a4a-api-form" class="vstack gap-3">
+                    <div>
+                      <label class="form-label" for="a4a-api-provider">Provider Name</label>
+                      <input type="text" class="form-control" id="a4a-api-provider" placeholder="e.g. OpenAI" autocomplete="organization" />
+                    </div>
+                    <div>
+                      <label class="form-label" for="a4a-api-base">API Base URL</label>
+                      <input type="url" class="form-control" id="a4a-api-base" placeholder="https://api.openai.com/v1" />
+                      <div class="form-text">Leave blank to use the default provided by the SDK.</div>
+                    </div>
+                    <div>
+                      <label class="form-label" for="a4a-api-model">Default Model</label>
+                      <input type="text" class="form-control" id="a4a-api-model" placeholder="gpt-4o-mini" />
+                    </div>
+                    <div>
+                      <label class="form-label" for="a4a-api-organization">Organization / Project</label>
+                      <input type="text" class="form-control" id="a4a-api-organization" placeholder="Optional identifier" autocomplete="off" />
+                    </div>
+                    <div>
+                      <label class="form-label" for="a4a-api-key">API Key</label>
+                      <input type="password" class="form-control" id="a4a-api-key" placeholder="sk-..." autocomplete="new-password" />
+                      <div class="form-text">Stored securely in WordPress options; required for automated runs.</div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                      <button type="submit" class="btn btn-primary">${icon('save', 'me-1')}Save Credentials</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const app = document.createElement('div');
+    app.innerHTML = markup;
+    shadow.appendChild(app);
+
+    const els = {
+      notice: app.querySelector('#a4a-settings-notice'),
+      interfaceForm: app.querySelector('#a4a-interface-form'),
+      settingPrimary: app.querySelector('#a4a-setting-primary'),
+      settingSuccess: app.querySelector('#a4a-setting-success'),
+      settingDanger: app.querySelector('#a4a-setting-danger'),
+      settingIcon: app.querySelector('#a4a-setting-icon'),
+      settingIconLabel: app.querySelector('#a4a-setting-icon-label'),
+      settingsReset: app.querySelector('#a4a-settings-reset'),
+      apiForm: app.querySelector('#a4a-api-form'),
+      apiProvider: app.querySelector('#a4a-api-provider'),
+      apiBase: app.querySelector('#a4a-api-base'),
+      apiModel: app.querySelector('#a4a-api-model'),
+      apiOrganization: app.querySelector('#a4a-api-organization'),
+      apiKey: app.querySelector('#a4a-api-key')
+    };
+
+    const state = {
+      interface: { ...settingsState.value },
+      api: {
+        provider: '',
+        api_base: '',
+        api_model: '',
+        api_organization: '',
+        api_key: ''
+      },
+      apiBusy: false
+    };
+
+    function setNotice(message, type = 'info') {
+      if (!els.notice) {
+        return;
+      }
+      if (!message) {
+        els.notice.className = 'alert d-none';
+        els.notice.textContent = '';
+        return;
+      }
+      const typeClass = type ? `alert-${type}` : 'alert-info';
+      els.notice.className = `alert ${typeClass}`;
+      els.notice.textContent = message;
+      els.notice.classList.remove('d-none');
+    }
+
+    function renderInterfaceForm() {
+      if (els.settingPrimary) {
+        els.settingPrimary.value = normalizeHex(state.interface.primaryColor) || DEFAULT_SETTINGS.primaryColor;
+      }
+      if (els.settingSuccess) {
+        els.settingSuccess.value = normalizeHex(state.interface.successColor) || DEFAULT_SETTINGS.successColor;
+      }
+      if (els.settingDanger) {
+        els.settingDanger.value = normalizeHex(state.interface.dangerColor) || DEFAULT_SETTINGS.dangerColor;
+      }
+      if (els.settingIcon) {
+        els.settingIcon.value = clampIconScale(state.interface.iconScale);
+      }
+      if (els.settingIconLabel) {
+        els.settingIconLabel.textContent = `${Math.round(clampIconScale(state.interface.iconScale) * 100)}%`;
+      }
+    }
+
+    function sanitizeApiSettings(data) {
+      return {
+        provider: typeof data.provider === 'string' ? data.provider.trim() : '',
+        api_base: typeof data.api_base === 'string' ? data.api_base.trim() : '',
+        api_model: typeof data.api_model === 'string' ? data.api_model.trim() : '',
+        api_organization: typeof data.api_organization === 'string' ? data.api_organization.trim() : '',
+        api_key: typeof data.api_key === 'string' ? data.api_key.trim() : ''
+      };
+    }
+
+    function renderApiForm() {
+      if (!els.apiForm) {
+        return;
+      }
+      if (els.apiProvider) {
+        els.apiProvider.value = state.api.provider;
+      }
+      if (els.apiBase) {
+        els.apiBase.value = state.api.api_base;
+      }
+      if (els.apiModel) {
+        els.apiModel.value = state.api.api_model;
+      }
+      if (els.apiOrganization) {
+        els.apiOrganization.value = state.api.api_organization;
+      }
+      if (els.apiKey) {
+        els.apiKey.value = state.api.api_key;
+      }
+    }
+
+    function setApiBusy(flag) {
+      state.apiBusy = Boolean(flag);
+      if (!els.apiForm) {
+        return;
+      }
+      const controls = els.apiForm.querySelectorAll('input, button');
+      controls.forEach((control) => {
+        control.disabled = state.apiBusy;
+      });
+    }
+
+    function handleInterfaceChange(partial) {
+      state.interface = updateSettingsState(partial);
+      renderInterfaceForm();
+    }
+
+    async function fetchApiSettings() {
+      if (!settingsEndpoint || !els.apiForm) {
+        return;
+      }
+      setApiBusy(true);
+      try {
+        const response = await request('GET', settingsEndpoint);
+        state.api = sanitizeApiSettings(response || {});
+        renderApiForm();
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to load API credentials.', 'danger');
+      } finally {
+        setApiBusy(false);
+      }
+    }
+
+    async function handleApiSubmit(event) {
+      event.preventDefault();
+      if (!settingsEndpoint) {
+        setNotice('Settings endpoint is not available. Please reload the page.', 'danger');
+        return;
+      }
+      setApiBusy(true);
+      const payload = {
+        provider: els.apiProvider ? els.apiProvider.value.trim() : '',
+        api_base: els.apiBase ? els.apiBase.value.trim() : '',
+        api_model: els.apiModel ? els.apiModel.value.trim() : '',
+        api_organization: els.apiOrganization ? els.apiOrganization.value.trim() : '',
+        api_key: els.apiKey ? els.apiKey.value.trim() : ''
+      };
+      try {
+        const saved = await request('PUT', settingsEndpoint, payload);
+        state.api = sanitizeApiSettings(saved || payload);
+        renderApiForm();
+        setNotice('AI provider settings saved.', 'success');
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to save AI provider settings.', 'danger');
+      } finally {
+        setApiBusy(false);
+      }
+    }
+
+    renderInterfaceForm();
+    renderApiForm();
+
+    if (els.notice) {
+      els.notice.addEventListener('click', (event) => {
+        if (event.target.closest('.btn-close')) {
+          setNotice('');
+        }
+      });
+    }
+
+    if (els.settingPrimary) {
+      els.settingPrimary.addEventListener('input', (event) => {
+        const value = normalizeHex(event.target.value) || state.interface.primaryColor;
+        handleInterfaceChange({ primaryColor: value });
+      });
+    }
+    if (els.settingSuccess) {
+      els.settingSuccess.addEventListener('input', (event) => {
+        const value = normalizeHex(event.target.value) || state.interface.successColor;
+        handleInterfaceChange({ successColor: value });
+      });
+    }
+    if (els.settingDanger) {
+      els.settingDanger.addEventListener('input', (event) => {
+        const value = normalizeHex(event.target.value) || state.interface.dangerColor;
+        handleInterfaceChange({ dangerColor: value });
+      });
+    }
+    if (els.settingIcon) {
+      els.settingIcon.addEventListener('input', (event) => {
+        const value = clampIconScale(event.target.value);
+        handleInterfaceChange({ iconScale: value });
+      });
+    }
+    if (els.settingsReset) {
+      els.settingsReset.addEventListener('click', () => {
+        state.interface = resetSettingsState();
+        renderInterfaceForm();
+        setNotice('Interface settings reset to defaults.', 'info');
+      });
+    }
+    if (els.apiForm) {
+      els.apiForm.addEventListener('submit', handleApiSubmit);
+    }
+
+    if (!settingsEndpoint && els.apiForm) {
+      setNotice('Settings endpoint not available. Interface changes still work locally.', 'warning');
+      const controls = els.apiForm.querySelectorAll('input, button');
+      controls.forEach((control) => {
+        control.disabled = true;
+      });
+    } else {
+      fetchApiSettings();
+    }
+  }
+
   function initCategories() {
     const baseCategoriesUrl = config.categoriesRestUrl ? config.categoriesRestUrl.replace(/\/$/, '') : '';
 
@@ -1177,228 +1726,6 @@
     fetchCategories();
   }
 
-  const STORAGE_KEY = 'a4a-ai-settings';
-  const DEFAULT_SETTINGS = Object.freeze({
-    primaryColor: '#0d6efd',
-    successColor: '#198754',
-    dangerColor: '#dc3545',
-    iconScale: 1
-  });
-
-  function normalizeHex(value) {
-    if (typeof value !== 'string') {
-      return null;
-    }
-    let hex = value.trim();
-    if (!hex) {
-      return null;
-    }
-    if (hex.startsWith('#')) {
-      hex = hex.slice(1);
-    }
-    if (hex.length === 3) {
-      hex = hex.split('').map((ch) => ch + ch).join('');
-    }
-    if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) {
-      return null;
-    }
-    return `#${hex.toLowerCase()}`;
-  }
-
-  function hexToRgb(hex) {
-    const normalized = normalizeHex(hex);
-    if (!normalized) {
-      return null;
-    }
-    const value = parseInt(normalized.slice(1), 16);
-    return {
-      r: (value >> 16) & 255,
-      g: (value >> 8) & 255,
-      b: value & 255,
-      hex: normalized
-    };
-  }
-
-  function hexToRgba(hex, alpha) {
-    const rgb = hexToRgb(hex);
-    if (!rgb) {
-      return `rgba(0, 0, 0, ${typeof alpha === 'number' ? alpha : 1})`;
-    }
-    const a = typeof alpha === 'number' ? Math.min(1, Math.max(0, alpha)) : 1;
-    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
-  }
-
-  function shadeColor(hex, percent) {
-    const rgb = hexToRgb(hex);
-    if (!rgb) {
-      return hex;
-    }
-    const ratio = Math.max(-1, Math.min(1, percent));
-    const adjust = (channel) => {
-      if (ratio < 0) {
-        return Math.round(channel * (1 + ratio));
-      }
-      return Math.round(channel + (255 - channel) * ratio);
-    };
-    const r = adjust(rgb.r);
-    const g = adjust(rgb.g);
-    const b = adjust(rgb.b);
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-
-  function clampIconScale(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num)) {
-      return DEFAULT_SETTINGS.iconScale;
-    }
-    return Math.min(1.75, Math.max(0.75, Number(num.toFixed(2))));
-  }
-
-  function loadSettings() {
-    const settings = { ...DEFAULT_SETTINGS };
-    try {
-      if (typeof window.localStorage === 'undefined') {
-        return settings;
-      }
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        return settings;
-      }
-      const parsed = JSON.parse(stored);
-      if (parsed && typeof parsed === 'object') {
-        if (normalizeHex(parsed.primaryColor)) {
-          settings.primaryColor = normalizeHex(parsed.primaryColor);
-        }
-        if (normalizeHex(parsed.successColor)) {
-          settings.successColor = normalizeHex(parsed.successColor);
-        }
-        if (normalizeHex(parsed.dangerColor)) {
-          settings.dangerColor = normalizeHex(parsed.dangerColor);
-        }
-        if (parsed.iconScale !== undefined) {
-          settings.iconScale = clampIconScale(parsed.iconScale);
-        }
-      }
-    } catch (error) {
-      console.warn('axs4all - AI: unable to parse saved settings, using defaults.', error);
-    }
-    return settings;
-  }
-
-  function saveSettings(settings) {
-    try {
-      if (typeof window.localStorage === 'undefined') {
-        return;
-      }
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch (error) {
-      console.warn('axs4all - AI: unable to persist settings.', error);
-    }
-  }
-
-  function applySettingsToTheme(settings) {
-    const primary = normalizeHex(settings.primaryColor) || DEFAULT_SETTINGS.primaryColor;
-    const success = normalizeHex(settings.successColor) || DEFAULT_SETTINGS.successColor;
-    const danger = normalizeHex(settings.dangerColor) || DEFAULT_SETTINGS.dangerColor;
-    const iconScale = clampIconScale(settings.iconScale);
-
-    const primaryHover = shadeColor(primary, -0.1);
-    const primaryActive = shadeColor(primary, -0.2);
-    const outlinePrimaryBg = hexToRgba(primary, 0.12);
-    const outlineDangerBg = hexToRgba(danger, 0.12);
-
-    themeStyle.textContent = `
-      :host {
-        --a4a-color-primary: ${primary};
-        --a4a-color-success: ${success};
-        --a4a-color-danger: ${danger};
-        --a4a-color-success-bg: ${hexToRgba(success, 0.12)};
-        --a4a-color-success-border: ${hexToRgba(success, 0.35)};
-        --a4a-color-danger-bg: ${hexToRgba(danger, 0.12)};
-        --a4a-color-danger-border: ${hexToRgba(danger, 0.35)};
-        --a4a-icon-scale: ${iconScale};
-      }
-      .btn-primary,
-      .btn-primary:focus,
-      .btn-primary:active {
-        background-color: ${primary};
-        border-color: ${primary};
-      }
-      .btn-primary:hover {
-        background-color: ${primaryHover};
-        border-color: ${primaryHover};
-      }
-      .btn-primary:active {
-        background-color: ${primaryActive};
-        border-color: ${primaryActive};
-      }
-      .btn-outline-primary {
-        color: ${primary};
-        border-color: ${primary};
-      }
-      .btn-outline-primary:hover,
-      .btn-outline-primary:focus,
-      .btn-outline-primary:active {
-        background-color: ${outlinePrimaryBg};
-        border-color: ${primary};
-        color: ${primary};
-      }
-      .btn-outline-danger {
-        color: ${danger};
-        border-color: ${danger};
-      }
-      .btn-outline-danger:hover,
-      .btn-outline-danger:focus,
-      .btn-outline-danger:active {
-        background-color: ${outlineDangerBg};
-        border-color: ${danger};
-        color: ${danger};
-      }
-      .btn-outline-secondary:hover,
-      .btn-outline-secondary:focus,
-      .btn-outline-secondary:active {
-        color: ${primary};
-        border-color: ${primary};
-      }
-      .badge.text-bg-primary {
-        background-color: ${outlinePrimaryBg};
-        color: ${primary};
-      }
-      .a4a-schedule-badge--scheduled {
-        background-color: ${hexToRgba(success, 0.12)};
-        border-color: ${hexToRgba(success, 0.35)};
-        color: ${success};
-      }
-      .a4a-schedule-badge--adhoc {
-        background-color: ${hexToRgba(danger, 0.12)};
-        border-color: ${hexToRgba(danger, 0.35)};
-        color: ${danger};
-      }
-      .a4a-schedule-text--scheduled,
-      .text-success {
-        color: ${success} !important;
-      }
-      .a4a-schedule-text--adhoc,
-      .text-danger {
-        color: ${danger} !important;
-      }
-    `;
-
-    return {
-      primaryColor: primary,
-      successColor: success,
-      dangerColor: danger,
-      iconScale
-    };
-  }
-
-  const initialSettings = loadSettings();
-  const sanitizedSettings = applySettingsToTheme(initialSettings);
-  if (JSON.stringify(initialSettings) !== JSON.stringify(sanitizedSettings)) {
-    saveSettings(sanitizedSettings);
-  }
-  const initialIconPercent = Math.round(sanitizedSettings.iconScale * 100);
-
   const markup = `
     <div class="bg-light min-vh-100">
       <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
@@ -1542,36 +1869,6 @@
                 </div>
               </div>
             </div>
-
-            <div class="card shadow-sm" id="a4a-settings-card">
-              <div class="card-header">
-                <h2 class="h6 mb-0">Interface Settings</h2>
-              </div>
-              <div class="card-body">
-                <form id="a4a-settings-form" class="vstack gap-3">
-                  <div>
-                    <label class="form-label" for="a4a-setting-primary">Primary Color</label>
-                    <input type="color" class="form-control form-control-color" id="a4a-setting-primary" value="${sanitizedSettings.primaryColor}" aria-label="Pick primary color" />
-                  </div>
-                  <div>
-                    <label class="form-label" for="a4a-setting-success">Schedule Success Color</label>
-                    <input type="color" class="form-control form-control-color" id="a4a-setting-success" value="${sanitizedSettings.successColor}" aria-label="Pick scheduled color" />
-                  </div>
-                  <div>
-                    <label class="form-label" for="a4a-setting-danger">Schedule Pending Color</label>
-                    <input type="color" class="form-control form-control-color" id="a4a-setting-danger" value="${sanitizedSettings.dangerColor}" aria-label="Pick ad hoc color" />
-                  </div>
-                  <div>
-                    <label class="form-label" for="a4a-setting-icon">Icon Size</label>
-                    <input type="range" class="form-range" id="a4a-setting-icon" min="0.75" max="1.75" step="0.05" value="${sanitizedSettings.iconScale}" />
-                    <div class="form-text">Adjust the multiplier applied to interface icons. Current: <span id="a4a-setting-icon-label">${initialIconPercent}%</span></div>
-                  </div>
-                  <div class="d-flex justify-content-end">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="a4a-settings-reset">Reset defaults</button>
-                  </div>
-                </form>
-              </div>
-            </div>
           </div>
 
           <div class="col-12">
@@ -1665,8 +1962,7 @@
     selectedId: null,
     loading: false,
     clients: [],
-    clientsLoading: false,
-    settings: { ...sanitizedSettings }
+    clientsLoading: false
   };
 
   const els = {
@@ -1707,18 +2003,8 @@
     previewClose: app.querySelector('#a4a-preview-close'),
     previewCard: app.querySelector('#a4a-preview-card'),
     previewContent: app.querySelector('#a4a-preview-content'),
-    settingsCard: app.querySelector('#a4a-settings-card'),
-    settingsForm: app.querySelector('#a4a-settings-form'),
-    settingPrimary: app.querySelector('#a4a-setting-primary'),
-    settingSuccess: app.querySelector('#a4a-setting-success'),
-    settingDanger: app.querySelector('#a4a-setting-danger'),
-    settingIcon: app.querySelector('#a4a-setting-icon'),
-    settingIconLabel: app.querySelector('#a4a-setting-icon-label'),
-    settingsReset: app.querySelector('#a4a-settings-reset'),
     actionNewButtons: app.querySelectorAll('[data-action="new-url"]')
   };
-
-  updateSettingsForm();
 
   if (els.brand) {
     const versionLabel = typeof config.version === 'string' ? config.version.trim() : '';
@@ -1774,36 +2060,6 @@
   function renderScheduleBadge(schedule) {
     const meta = getScheduleDisplayMeta(schedule);
     return `<span class="${meta.badgeClass}">${icon(meta.icon)}<span>${escapeHtml(meta.text)}</span></span>`;
-  }
-
-  function updateSettingsForm() {
-    if (!els || !els.settingsForm) {
-      return;
-    }
-    const { primaryColor, successColor, dangerColor, iconScale } = state.settings;
-    if (els.settingPrimary) {
-      els.settingPrimary.value = normalizeHex(primaryColor) || DEFAULT_SETTINGS.primaryColor;
-    }
-    if (els.settingSuccess) {
-      els.settingSuccess.value = normalizeHex(successColor) || DEFAULT_SETTINGS.successColor;
-    }
-    if (els.settingDanger) {
-      els.settingDanger.value = normalizeHex(dangerColor) || DEFAULT_SETTINGS.dangerColor;
-    }
-    if (els.settingIcon) {
-      els.settingIcon.value = clampIconScale(iconScale);
-    }
-    if (els.settingIconLabel) {
-      els.settingIconLabel.textContent = `${Math.round(clampIconScale(iconScale) * 100)}%`;
-    }
-  }
-
-  function commitSettings(partial) {
-    const merged = { ...state.settings, ...partial };
-    const sanitized = applySettingsToTheme(merged);
-    state.settings = sanitized;
-    updateSettingsForm();
-    saveSettings(state.settings);
   }
 
   function timeAgo(date) {
@@ -2457,34 +2713,6 @@
         updatePreviewContent();
       }
     });
-    if (els.settingPrimary) {
-      els.settingPrimary.addEventListener('input', (event) => {
-        const value = normalizeHex(event.target.value) || state.settings.primaryColor;
-        commitSettings({ primaryColor: value });
-      });
-    }
-    if (els.settingSuccess) {
-      els.settingSuccess.addEventListener('input', (event) => {
-        const value = normalizeHex(event.target.value) || state.settings.successColor;
-        commitSettings({ successColor: value });
-      });
-    }
-    if (els.settingDanger) {
-      els.settingDanger.addEventListener('input', (event) => {
-        const value = normalizeHex(event.target.value) || state.settings.dangerColor;
-        commitSettings({ dangerColor: value });
-      });
-    }
-    if (els.settingIcon) {
-      els.settingIcon.addEventListener('input', (event) => {
-        commitSettings({ iconScale: clampIconScale(event.target.value) });
-      });
-    }
-    if (els.settingsReset) {
-      els.settingsReset.addEventListener('click', () => {
-        commitSettings({ ...DEFAULT_SETTINGS });
-      });
-    }
   }
 
   resetForm();
