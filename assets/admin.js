@@ -1105,6 +1105,7 @@
       if (els.categoriesContainer) {
         els.categoriesContainer.addEventListener('change', () => {
           readSelectedCategories();
+          renderClientCategories(getSelectedClient());
         });
       }
       if (els.clientDelete) {
