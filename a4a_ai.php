@@ -342,172 +342,172 @@ final class A4A_AI_Plugin {
     /**
      * Registers REST API routes for managing URLs.
      */
-    public function register_rest_routes() {
-        register_rest_route(
-            'a4a/v1',
-            '/urls',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_list_urls'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-                [
-                    'methods' => WP_REST_Server::CREATABLE,
-                    'callback' => [$this, 'rest_create_url'],
-                    'permission_callback' => [$this, 'can_manage'],
-                    'args' => $this->rest_args(),
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/urls/(?P<id>\d+)',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_get_url'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-                [
-                    'methods' => WP_REST_Server::EDITABLE,
-                    'callback' => [$this, 'rest_update_url'],
-                    'permission_callback' => [$this, 'can_manage'],
-                    'args' => $this->rest_args(true),
-                ],
-                [
-                    'methods' => WP_REST_Server::DELETABLE,
-                    'callback' => [$this, 'rest_delete_url'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/urls/(?P<id>\d+)/run',
-            [
-                [
-                    'methods' => WP_REST_Server::CREATABLE,
-                    'callback' => [$this, 'rest_run_url_now'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/clients',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_list_clients'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-                [
-                    'methods' => WP_REST_Server::CREATABLE,
-                    'callback' => [$this, 'rest_create_client'],
-                    'permission_callback' => [$this, 'can_manage'],
-                    'args' => $this->client_args(),
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/clients/(?P<id>\d+)',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_get_client'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-                [
-                    'methods' => WP_REST_Server::EDITABLE,
-                    'callback' => [$this, 'rest_update_client'],
-                    'permission_callback' => [$this, 'can_manage'],
-                    'args' => $this->client_args(true),
-                ],
-                [
-                    'methods' => WP_REST_Server::DELETABLE,
-                    'callback' => [$this, 'rest_delete_client'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/categories',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_list_categories'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-                [
-                    'methods' => WP_REST_Server::CREATABLE,
-                    'callback' => [$this, 'rest_create_category'],
-                    'permission_callback' => [$this, 'can_manage'],
-                    'args' => $this->category_args(),
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/categories/(?P<id>\d+)',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_get_category'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-                [
-                    'methods' => WP_REST_Server::EDITABLE,
-                    'callback' => [$this, 'rest_update_category'],
-                    'permission_callback' => [$this, 'can_manage'],
-                    'args' => $this->category_args(true),
-                ],
-                [
-                    'methods' => WP_REST_Server::DELETABLE,
-                    'callback' => [$this, 'rest_delete_category'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/settings',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_get_settings'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-                [
-                    'methods' => WP_REST_Server::EDITABLE,
-                    'callback' => [$this, 'rest_update_settings'],
-                    'permission_callback' => [$this, 'can_manage'],
-                    'args' => $this->settings_args(),
-                ],
-            ]
-        );
-
-        register_rest_route(
-            'a4a/v1',
-            '/icons',
-            [
-                [
-                    'methods' => WP_REST_Server::READABLE,
-                    'callback' => [$this, 'rest_list_icons'],
-                    'permission_callback' => [$this, 'can_manage'],
-                ],
-            ]
-        );
-    }
+//     public function register_rest_routes() {
+//         register_rest_route(
+//             'a4a/v1',
+//             '/urls',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_list_urls'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::CREATABLE,
+//                     'callback' => [$this, 'rest_create_url'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                     'args' => $this->rest_args(),
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/urls/(?P<id>\d+)',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_get_url'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::EDITABLE,
+//                     'callback' => [$this, 'rest_update_url'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                     'args' => $this->rest_args(true),
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::DELETABLE,
+//                     'callback' => [$this, 'rest_delete_url'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/urls/(?P<id>\d+)/run',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::CREATABLE,
+//                     'callback' => [$this, 'rest_run_url_now'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/clients',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_list_clients'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::CREATABLE,
+//                     'callback' => [$this, 'rest_create_client'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                     'args' => $this->client_args(),
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/clients/(?P<id>\d+)',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_get_client'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::EDITABLE,
+//                     'callback' => [$this, 'rest_update_client'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                     'args' => $this->client_args(true),
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::DELETABLE,
+//                     'callback' => [$this, 'rest_delete_client'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/categories',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_list_categories'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::CREATABLE,
+//                     'callback' => [$this, 'rest_create_category'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                     'args' => $this->category_args(),
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/categories/(?P<id>\d+)',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_get_category'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::EDITABLE,
+//                     'callback' => [$this, 'rest_update_category'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                     'args' => $this->category_args(true),
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::DELETABLE,
+//                     'callback' => [$this, 'rest_delete_category'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/settings',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_get_settings'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//                 [
+//                     'methods' => WP_REST_Server::EDITABLE,
+//                     'callback' => [$this, 'rest_update_settings'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                     'args' => $this->settings_args(),
+//                 ],
+//             ]
+//         );
+// 
+//         register_rest_route(
+//             'a4a/v1',
+//             '/icons',
+//             [
+//                 [
+//                     'methods' => WP_REST_Server::READABLE,
+//                     'callback' => [$this, 'rest_list_icons'],
+//                     'permission_callback' => [$this, 'can_manage'],
+//                 ],
+//             ]
+//         );
+//     }
 
     /**
      * REST argument schema.
