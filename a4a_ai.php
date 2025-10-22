@@ -1,5 +1,4 @@
 ﻿<?php
-// header-clean
 if ( ! defined('A4A_AI_PLUGIN_FILE') ) {
     define('A4A_AI_PLUGIN_FILE', __FILE__);
 }
