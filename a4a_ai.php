@@ -517,7 +517,7 @@ final class A4A_AI_Plugin {
      * @param bool $partial
      * @return array
      */
-    private function rest_args($partial = false) {
+    public function rest_args($partial = false) {
         $required = !$partial;
 
         return [
@@ -553,7 +553,7 @@ final class A4A_AI_Plugin {
         ];
     }
 
-    private function client_args($partial = false) {
+    public function client_args($partial = false) {
         $required = !$partial;
 
         return [
@@ -583,7 +583,7 @@ final class A4A_AI_Plugin {
         ];
     }
 
-    private function category_args($partial = false) {
+    public function category_args($partial = false) {
         $required = !$partial;
 
         return [
@@ -600,7 +600,7 @@ final class A4A_AI_Plugin {
         ];
     }
 
-    private function settings_args() {
+    public function settings_args() {
         return [
             'provider' => [
                 'required' => false,
@@ -1916,3 +1916,5 @@ foreach ( [
 
 
 require_once __DIR__ . '/includes/constants.php';
+
+
