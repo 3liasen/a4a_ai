@@ -68,26 +68,128 @@ class A4A_AI_REST {
         return new WP_Error( 'not_implemented', __( 'Not yet migrated', 'a4a-ai' ), [ 'status' => 500 ] );
     }
 
-    public function rest_list_urls( $request = null )      { return $this->not_implemented(); }
-    public function rest_create_url( $request )            { return $this->not_implemented(); }
-    public function rest_get_url( $request )               { return $this->not_implemented(); }
-    public function rest_update_url( $request )            { return $this->not_implemented(); }
-    public function rest_delete_url( $request )            { return $this->not_implemented(); }
-    public function rest_run_url_now( $request )           { return $this->not_implemented(); }
+        public function rest_list_urls($request = null) {
+        $client_id = $request ? absint($request->get_param('client_id')) : 0;
 
-    public function rest_list_clients( $request )          { return $this->not_implemented(); }
-    public function rest_get_client( $request )            { return $this->not_implemented(); }
-    public function rest_create_client( $request )         { return $this->not_implemented(); }
-    public function rest_update_client( $request )         { return $this->not_implemented(); }
-    public function rest_delete_client( $request )         { return $this->not_implemented(); }
+        $args = [
+            'post_type' => self::CPT,
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'orderby' => 'date',
+            'order' => 'DESC',
+        ];
 
-    public function rest_list_categories()                 { return $this->not_implemented(); }
-    public function rest_get_category( $request )          { return $this->not_implemented(); }
-    public function rest_create_category( $request )       { return $this->not_implemented(); }
-    public function rest_update_category( $request )       { return $this->not_implemented(); }
-    public function rest_delete_category( $request )       { return $this->not_implemented(); }
+        if ($client_id > 0) {
+            $args['meta_query'] = [
+                [
+                    'key' => '_a4a_client_id',
+                    'value' => $client_id,
+                    'compare' => '=',
+                ],
+            ];
+        }
 
-    public function rest_get_settings( $request )          { return $this->not_implemented(); }
-    public function rest_update_settings( $request )       { return $this->not_implemented(); }
-    public function rest_list_icons( $request )            { return $this->not_implemented(); }
-}
+        $posts = get_posts($args);
+
+        $items = array_map([$this, 'map_post_to_item'], $posts);
+
+        return rest_ensure_response($items);
+    }
+    public function rest_create_url($request) {
+        $client_id = absint($request->get_param('client_id'));
+        if ($client_id > 0 && !$this->validate_client_param($client_id)) {
+            return new WP_Error('invalid_client', __('Selected client does not exist.', 'a4a-ai'), ['status' => 404]);
+        }
+
+        $url = esc_url_raw($request->get_param('url'));
+        if (empty($url)) {
+            return new WP_Error('invalid_url', __('Please provide a valid URL.', 'a4a-ai'), ['status' => 400]);
+        }
+
+        $post_id = wp_insert_post([
+            'post_type' => self::CPT,
+            'post_status' => 'publish',
+            'post_title' => $url,
+            'post_parent' => $client_id,
+        ], true);
+
+        if (is_wp_error($post_id)) {
+            return $post_id;
+        }
+
+        $this->persist_meta($post_id, $request);
+
+        $post = get_post($post_id);
+
+        return rest_ensure_response($this->map_post_to_item($post));
+    }
+    public function rest_get_url($request) {
+        $post = $this->get_post_from_request($request);
+        if (is_wp_error($post)) {
+            return $post;
+        }
+
+        return rest_ensure_response($this->map_post_to_item($post));
+    }
+    public function rest_update_url($request) {
+        $post = $this->get_post_from_request($request);
+        if (is_wp_error($post)) {
+            return $post;
+        }
+
+        if ($request->offsetExists('client_id')) {
+            $client_id = absint($request->get_param('client_id'));
+            if ($client_id > 0 && !$this->validate_client_param($client_id)) {
+                return new WP_Error('invalid_client', __('Selected client does not exist.', 'a4a-ai'), ['status' => 404]);
+            }
+        }
+
+        $url = $request->get_param('url');
+        if (null !== $url) {
+            $url = esc_url_raw($url);
+            if (empty($url)) {
+                return new WP_Error('invalid_url', __('Please provide a valid URL.', 'a4a-ai'), ['status' => 400]);
+            }
+
+            wp_update_post([
+                'ID' => $post->ID,
+                'post_title' => $url,
+            ]);
+        }
+
+        $this->persist_meta($post->ID, $request, true);
+
+        $updated = get_post($post->ID);
+
+        return rest_ensure_response($this->map_post_to_item($updated));
+    }
+    public function rest_delete_url($request) {
+        $post = $this->get_post_from_request($request);
+        if (is_wp_error($post)) {
+            return $post;
+        }
+
+        $deleted = wp_delete_post($post->ID, true);
+        if (!$deleted) {
+            return new WP_Error('delete_failed', __('Could not delete the URL.', 'a4a-ai'), ['status' => 500]);
+        }
+
+        return rest_ensure_response(['deleted' => true]);
+    }
+    public function rest_run_url_now($request) {
+        $post = $this->get_post_from_request($request);
+        if (is_wp_error($post)) {
+            return $post;
+        }
+
+        $processed = $this->execute_crawl($post);
+        if (is_wp_error($processed)) {
+            return $processed;
+        }
+
+        $updated = get_post($post->ID);
+
+        return rest_ensure_response($this->map_post_to_item($updated));
+    }
+
+
