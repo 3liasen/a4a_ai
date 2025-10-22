@@ -21,3 +21,13 @@ class A4A_AI_Settings {
         return $out;
     }
 }
+
+    public function get_api_key() : string {
+        $all = $this->get_all();
+        return isset($all['api_key']) ? (string) $all['api_key'] : '';
+    }
+
+    public function get_option( string $key, $default = '' ) {
+        $all = $this->get_all();
+        return array_key_exists($key, $all) ? $all[$key] : $default;
+    }

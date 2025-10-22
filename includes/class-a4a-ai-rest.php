@@ -7,7 +7,7 @@
 
         $post = get_post($client_id);
 
-        return $post && $post->post_type === self::CPT_CLIENT;
+        return $post && $post->post_type === A4A_AI_Config::CPT_CLIENT;
     }
     private function map_post_to_item($post) {
         $url_value = get_post_meta($post->ID, '_a4a_url', true);
@@ -146,7 +146,7 @@
         $id = (int) $request->get_param('id');
         $post = get_post($id);
 
-        if (!$post || $post->post_type !== self::CPT_URL) {
+        if (!$post || $post->post_type !== A4A_AI_Config::CPT_URL) {
             return new WP_Error('not_found', __('URL not found.', 'a4a-ai'), ['status' => 404]);
         }
 
@@ -156,8 +156,6 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class A4A_AI_REST {
-    // Local slugs to avoid coupling in Phase 2
-    const CPT_URL     = 'a4a_url';
     const CPT_CLIENT  = 'a4a_client';
     const CPT_CATEGORY= 'a4a_category';
     const OPT_SETTINGS= 'a4a_ai_settings';
@@ -226,7 +224,7 @@ class A4A_AI_REST {
         $client_id = $request ? absint($request->get_param('client_id')) : 0;
 
         $args = [
-            'post_type' => self::CPT_URL,
+            'post_type' => A4A_AI_Config::CPT_URL,
             'post_status' => 'publish',
             'posts_per_page' => -1,
             'orderby' => 'date',
@@ -261,7 +259,7 @@ class A4A_AI_REST {
         }
 
         $post_id = wp_insert_post([
-            'post_type' => self::CPT_URL,
+            'post_type' => A4A_AI_Config::CPT_URL,
             'post_status' => 'publish',
             'post_title' => $url,
             'post_parent' => $client_id,
@@ -351,7 +349,7 @@ class A4A_AI_REST {
 
 
 
-        if (!$post || $post->post_type !== self::CPT_CLIENT) {
+        if (!$post || $post->post_type !== A4A_AI_Config::CPT_CLIENT) {
             return new WP_Error('not_found', __('Client not found.', 'a4a-ai'), ['status' => 404]);
         }
 
@@ -379,4 +377,6 @@ class A4A_AI_REST {
         if (!is_array($categories) || !$categories) {
             return [];
         }
+
+
 
