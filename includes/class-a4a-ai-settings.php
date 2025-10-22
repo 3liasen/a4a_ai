@@ -20,7 +20,6 @@ class A4A_AI_Settings {
         }
         return $out;
     }
-}
 
     public function get_api_key() : string {
         $all = $this->get_all();
@@ -31,4 +30,4 @@ class A4A_AI_Settings {
         $all = $this->get_all();
         return array_key_exists($key, $all) ? $all[$key] : $default;
     }
-
+}
