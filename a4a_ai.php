@@ -8,7 +8,7 @@ if ( ! defined('A4A_AI_PLUGIN_FILE') ) {
 /**
  * Plugin Name: axs4all - AI
  * Description: Manage crawl targets for AI-powered processing with a Bootstrap-based admin experience.
- * Version: 0.4.5
+ * Version: 0.4.6
  * Author: axs4all
  * Text Domain: a4a-ai
  */
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 
 if ( ! class_exists( 'A4A_AI_Plugin', false ) ) :
 final class A4A_AI_Plugin {
-    const VERSION = '0.4.5';
+    const VERSION = '0.4.6';
     const SLUG = 'a4a-ai';
     const CPT = 'a4a_url';
     const CLIENT_CPT = 'a4a_client';
@@ -1887,34 +1887,33 @@ final class A4A_AI_Plugin {
 }
 
 endif; // ! class_exists( 'A4A_AI_Plugin' )
-A4A_AI_Plugin::instance();
 
-register_activation_hook(__FILE__, [A4A_AI_Plugin::instance(), 'activate']);
-register_deactivation_hook(__FILE__, [A4A_AI_Plugin::instance(), 'deactivate']);
-
-
-// Phase 1 bootstrap: load skeleton classes without replacing existing logic yet.
-if ( file_exists( __DIR__ . '/includes/helpers.php' ) ) {
-    require_once __DIR__ . '/includes/helpers.php';
-}
-foreach ( [
+// Load supporting classes before bootstrapping the plugin.
+$include_files = [
+    'helpers.php',
+    'constants.php',
     'class-a4a-ai-rest.php',
     'class-a4a-ai-settings.php',
     'class-a4a-ai-categories.php',
     'class-a4a-ai-clients.php',
     'class-a4a-ai-crawler.php',
-] as $inc ) {
-    $p = __DIR__ . '/includes/' . $inc;
-    if ( file_exists( $p ) ) {
-        require_once $p;
+    'class-a4a-ai-tools.php',
+];
+
+foreach ( $include_files as $file ) {
+    $path = __DIR__ . '/includes/' . $file;
+    if ( file_exists( $path ) ) {
+        require_once $path;
     }
 }
 
+$a4a_ai_plugin = A4A_AI_Plugin::instance();
 
+register_activation_hook( __FILE__, [ $a4a_ai_plugin, 'activate' ] );
+register_deactivation_hook( __FILE__, [ $a4a_ai_plugin, 'deactivate' ] );
 
-
-
-
-require_once __DIR__ . '/includes/constants.php';
+if ( is_admin() && class_exists( 'A4A_AI_Tools' ) ) {
+    A4A_AI_Tools::instance()->init();
+}
 
 
