@@ -45,6 +45,10 @@ final class A4A_AI_Plugin {
     }
 
     private function __construct() {
+        // Initialize new REST router
+        if ( class_exists('A4A_AI_REST') ) {
+            ( new A4A_AI_REST() )->init();
+        }
         add_action('init', [$this, 'register_post_types']);
         
         add_action('rest_api_init', [$this, 'register_rest_routes']);
