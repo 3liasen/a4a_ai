@@ -1894,7 +1894,6 @@ if ( file_exists( __DIR__ . '/includes/helpers.php' ) ) {
     require_once __DIR__ . '/includes/helpers.php';
 }
 foreach ( [
-    'class-a4a-ai-plugin.php',
     'class-a4a-ai-rest.php',
     'class-a4a-ai-settings.php',
     'class-a4a-ai-categories.php',
