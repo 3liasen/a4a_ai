@@ -1,5 +1,7 @@
 ﻿<?php
-if ( ! defined('A4A_AI_PLUGIN_FILE') ) define('A4A_AI_PLUGIN_FILE', __FILE__);
+if ( ! defined('A4A_AI_PLUGIN_FILE') ) {
+    define('A4A_AI_PLUGIN_FILE', __FILE__);
+}
 
 /**
  * Plugin Name: axs4all - AI
@@ -13,6 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if ( ! class_exists( 'A4A_AI_Plugin', false ) ) :
 final class A4A_AI_Plugin {
     const VERSION = '0.4.0';
     const SLUG = 'a4a-ai';
@@ -1883,6 +1886,7 @@ final class A4A_AI_Plugin {
     }
 }
 
+endif; // ! class_exists( 'A4A_AI_Plugin' )
 A4A_AI_Plugin::instance();
 
 register_activation_hook(__FILE__, [A4A_AI_Plugin::instance(), 'activate']);
@@ -1912,6 +1916,8 @@ foreach ( [
 
 
 require_once __DIR__ . '/includes/constants.php';
+
+
 
 
 
