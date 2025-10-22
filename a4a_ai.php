@@ -1,4 +1,4 @@
-<?php
+﻿\nif ( ! defined('A4A_AI_PLUGIN_FILE') ) define('A4A_AI_PLUGIN_FILE', __FILE__);\n
 /**
  * Plugin Name: axs4all - AI
  * Description: Manage crawl targets for AI-powered processing with a Bootstrap-based admin experience.
@@ -1878,3 +1878,21 @@ A4A_AI_Plugin::instance();
 
 register_activation_hook(__FILE__, [A4A_AI_Plugin::instance(), 'activate']);
 register_deactivation_hook(__FILE__, [A4A_AI_Plugin::instance(), 'deactivate']);
+
+\n// Phase 1 bootstrap: load skeleton classes without replacing existing logic yet.
+if ( file_exists( __DIR__ . '/includes/helpers.php' ) ) {
+    require_once __DIR__ . '/includes/helpers.php';
+}
+foreach ( [
+    'class-a4a-ai-plugin.php',
+    'class-a4a-ai-rest.php',
+    'class-a4a-ai-settings.php',
+    'class-a4a-ai-categories.php',
+    'class-a4a-ai-clients.php',
+    'class-a4a-ai-crawler.php',
+] as $inc ) {
+    $p = __DIR__ . '/includes/' . $inc;
+    if ( file_exists( $p ) ) {
+        require_once $p;
+    }
+}
