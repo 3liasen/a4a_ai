@@ -1,10 +1,10 @@
-<?php
+﻿<?php
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
 class A4A_AI_Tools {
-    const MENU_SLUG   = 'a4a-ai-tools';
+    const MENU_SLUG   = 'a4a-ai-tools-page';
     const OPTION_AUTO = 'a4a_ai_auto_strip_bom';
 
     private static $instance = null;
@@ -100,7 +100,7 @@ class A4A_AI_Tools {
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'A4A AI Tools', 'a4a-ai' ); ?></h1>
-            <p><?php esc_html_e( 'Scan for and remove UTF-8 BOM or stray whitespace that triggers “headers already sent” warnings.', 'a4a-ai' ); ?></p>
+            <p><?php esc_html_e( 'Scan for and remove UTF-8 BOM or stray whitespace that triggers â€œheaders already sentâ€ warnings.', 'a4a-ai' ); ?></p>
 
             <form method="post" style="margin-bottom:1.5rem;">
                 <?php wp_nonce_field( 'a4a_ai_toggle_auto' ); ?>
@@ -389,4 +389,7 @@ class A4A_AI_Tools {
         return ltrim( str_replace( $root, '', wp_normalize_path( $path ) ), '/' );
     }
 }
+
+
+
 
