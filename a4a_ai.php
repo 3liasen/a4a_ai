@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 
 if ( ! class_exists( 'A4A_AI_Plugin', false ) ) :
 final class A4A_AI_Plugin {
-    const VERSION = '0.4.0';
+    const VERSION = '0.4.3';
     const SLUG = 'a4a-ai';
     const CPT = 'a4a_url';
     const CLIENT_CPT = 'a4a_client';
