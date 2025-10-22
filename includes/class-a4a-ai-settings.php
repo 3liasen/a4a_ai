@@ -31,3 +31,4 @@ class A4A_AI_Settings {
         $all = $this->get_all();
         return array_key_exists($key, $all) ? $all[$key] : $default;
     }
+

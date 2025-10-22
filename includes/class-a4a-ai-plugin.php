@@ -45,3 +45,4 @@ class A4A_AI_Plugin {
         ] );
     }
 }
+

@@ -44,14 +44,7 @@ final class A4A_AI_Plugin {
 
     private function __construct() {
         add_action('init', [$this, 'register_post_types']);
-        // Initialize new REST router
-        if ( class_exists('A4A_AI_REST') ) {
-            ( new A4A_AI_REST() )->init();
-        }
-        // Initialize new REST router
-        if ( class_exists('A4A_AI_REST') ) {
-            ( new A4A_AI_REST() )->init();
-        }
+        
         add_action('rest_api_init', [$this, 'register_rest_routes']);
         add_action('admin_menu', [$this, 'register_admin_menu'], 20);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
@@ -1911,4 +1904,7 @@ foreach ( [
 
 
 require_once __DIR__ . '/includes/constants.php';
+
+
+
 
