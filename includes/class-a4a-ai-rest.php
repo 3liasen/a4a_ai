@@ -7,7 +7,7 @@
 
         $post = get_post($client_id);
 
-        return $post && $post->post_type === self::CLIENT_CPT;
+        return $post && $post->post_type === self::CPT_CLIENT;
     }
     private function map_post_to_item($post) {
         $url_value = get_post_meta($post->ID, '_a4a_url', true);
@@ -349,4 +349,34 @@ class A4A_AI_REST {
 
 
 
+
+
+        if (!$post || $post->post_type !== self::CPT_CLIENT) {
+            return new WP_Error('not_found', __('Client not found.', 'a4a-ai'), ['status' => 404]);
+        }
+
+        return $post;
+    }
+
+     * Maps a client post to an array.
+     *
+
+
+        return [
+
+        if (!is_dir($directory) || !is_readable($directory)) {
+            return [];
+        }
+
+            $id = absint($maybe_id);
+            if ($id > 0 && $this->validate_category_param($id)) {
+                $sanitised[$id] = $id;
+            }
+
+     * @param bool            $partial
+     */
+
+        if (!is_array($categories) || !$categories) {
+            return [];
+        }
 
