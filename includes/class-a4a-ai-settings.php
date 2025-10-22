@@ -1,4 +1,5 @@
 ﻿<?php
+// header-clean
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class A4A_AI_Settings {
@@ -31,3 +32,4 @@ class A4A_AI_Settings {
         return array_key_exists($key, $all) ? $all[$key] : $default;
     }
 }
+

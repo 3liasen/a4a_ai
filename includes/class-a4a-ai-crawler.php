@@ -1,4 +1,5 @@
 ﻿<?php
+// header-clean
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class A4A_AI_Crawler {
@@ -6,3 +7,4 @@ class A4A_AI_Crawler {
         return [ 'url' => esc_url_raw( $url ), 'status' => 'stubbed' ];
     }
 }
+

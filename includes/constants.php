@@ -1,4 +1,5 @@
 ﻿<?php
+// header-clean
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class A4A_AI_Config {
@@ -7,4 +8,5 @@ class A4A_AI_Config {
     const CPT_CATEGORY = 'a4a_category';
     const OPT_SETTINGS = 'a4a_ai_settings';
 }
+
 

@@ -1,4 +1,5 @@
 ﻿<?php
+// header-clean
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class A4A_AI_Clients {
@@ -7,3 +8,4 @@ class A4A_AI_Clients {
         return $val === '' ? $default : $val;
     }
 }
+

@@ -1,4 +1,5 @@
 ﻿<?php
+// header-clean
 if ( ! defined('A4A_AI_PLUGIN_FILE') ) {
     define('A4A_AI_PLUGIN_FILE', __FILE__);
 }
@@ -1916,6 +1917,7 @@ foreach ( [
 
 
 require_once __DIR__ . '/includes/constants.php';
+
 
 
 

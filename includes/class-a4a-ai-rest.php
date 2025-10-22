@@ -1,4 +1,5 @@
 ﻿<?php
+// header-clean
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 require_once __DIR__ . '/constants.php';
@@ -39,3 +40,4 @@ class A4A_AI_REST {
     public function rest_delete_url( $request ) { return new WP_Error('not_implemented'); }
     public function rest_run_url_now( $request ) { return new WP_Error('not_implemented'); }
 }
+

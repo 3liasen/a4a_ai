@@ -1,4 +1,5 @@
 ﻿<?php
+// header-clean
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class A4A_AI_Categories {
@@ -6,3 +7,4 @@ class A4A_AI_Categories {
         return sanitize_text_field( $name );
     }
 }
+
