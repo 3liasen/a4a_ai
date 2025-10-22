@@ -23,7 +23,7 @@ class A4A_AI_Tools {
     }
 
     public function init() : void {
-        add_action( 'admin_menu', [ $this, 'register_menu' ] );
+        add_action( 'admin_menu', [ $this, 'register_menu' ], 30 );
         add_action( 'admin_init', [ $this, 'handle_requests' ] );
         add_action( 'admin_notices', [ $this, 'render_notices' ] );
     }
@@ -40,6 +40,14 @@ class A4A_AI_Tools {
     }
 
     public function handle_requests() : void {
+        if ( isset( $_GET['page'] ) ) {
+            $page = sanitize_text_field( wp_unslash( $_GET['page'] ) );
+            if ( 'a4a-ai-tools' === $page ) {
+                wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG ) );
+                exit;
+            }
+        }
+
         if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
             return;
         }
