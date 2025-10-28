@@ -18,35 +18,6 @@
     return document.head || document.getElementsByTagName('head')[0] || document.documentElement;
   }
 
-  function injectStylesheet(href, integrity, id) {
-    const head = ensureHead();
-    if (id) {
-      const existing = head.querySelector(`link#${id}`);
-      if (existing) {
-        return existing;
-      }
-    }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    if (id) {
-      link.id = id;
-    }
-    if (integrity) {
-      link.integrity = integrity;
-      link.crossOrigin = 'anonymous';
-      link.referrerPolicy = 'no-referrer';
-    }
-    head.appendChild(link);
-    return link;
-  }
-
-  injectStylesheet(
-    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
-    undefined,
-    'a4a-ai-bootstrap-css'
-  );
-
   const head = ensureHead();
 
   let baseStyle = head.querySelector('style#a4a-ai-base-style');
@@ -134,6 +105,42 @@
     themeStyle = document.createElement('style');
     themeStyle.id = 'a4a-ai-theme-style';
     head.appendChild(themeStyle);
+  }
+
+  let adminLTEActivated = false;
+
+  function activateAdminLTE() {
+    if (adminLTEActivated) {
+      return;
+    }
+
+    const adminlte = globalThis.adminlte;
+    if (!adminlte || typeof adminlte !== 'object') {
+      return;
+    }
+
+    try {
+      if (typeof adminlte.Layout === 'function') {
+        const layout = new adminlte.Layout(document.body);
+        if (layout && typeof layout.holdTransition === 'function') {
+          layout.holdTransition();
+        }
+      }
+
+      if (typeof adminlte.initAccessibility === 'function') {
+        adminlte.initAccessibility({
+          announcements: true,
+          skipLinks: true,
+          focusManagement: true,
+          keyboardNavigation: true,
+          reducedMotion: true,
+        });
+      }
+    } catch (error) {
+      console.warn('axs4all - AI: AdminLTE initialisation warning', error);
+    }
+
+    adminLTEActivated = true;
   }
 
   const ICONS = Object.assign(Object.create(null), {
@@ -622,6 +629,7 @@
     const app = document.createElement('div');
     app.innerHTML = markup;
     root.appendChild(app);
+    activateAdminLTE();
 
     const els = {
       notice: app.querySelector('#a4a-clients-notice'),
@@ -1378,6 +1386,7 @@
     const app = document.createElement('div');
     app.innerHTML = markup;
     root.appendChild(app);
+    activateAdminLTE();
 
     const els = {
       notice: app.querySelector('#a4a-settings-notice'),
@@ -1945,6 +1954,7 @@
     const app = document.createElement('div');
     app.innerHTML = markup;
     root.appendChild(app);
+    activateAdminLTE();
 
     const els = {
       notice: app.querySelector('#a4a-categories-notice'),
@@ -2486,6 +2496,7 @@
   const app = document.createElement('div');
   app.innerHTML = markup;
   root.appendChild(app);
+  activateAdminLTE();
 
   const state = {
     items: [],

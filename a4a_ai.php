@@ -291,13 +291,67 @@ final class A4A_AI_Plugin {
             return;
         }
 
+        $assets_url = plugin_dir_url(__FILE__) . 'assets/';
         $handle = 'a4a-ai-admin';
-        $script_path = plugin_dir_url(__FILE__) . 'assets/admin.js';
+        $script_path = $assets_url . 'admin.js';
+
+        wp_register_style(
+            'a4a-ai-bootstrap',
+            $assets_url . 'vendor/bootstrap/css/bootstrap.min.css',
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'a4a-ai-overlayscrollbars',
+            $assets_url . 'vendor/overlayscrollbars/overlayscrollbars.min.css',
+            [],
+            self::VERSION
+        );
+
+        wp_register_style(
+            'a4a-ai-adminlte',
+            $assets_url . 'vendor/adminlte/css/adminlte.min.css',
+            [
+                'a4a-ai-bootstrap',
+                'a4a-ai-overlayscrollbars',
+            ],
+            self::VERSION
+        );
+
+        wp_register_script(
+            'a4a-ai-bootstrap',
+            $assets_url . 'vendor/bootstrap/js/bootstrap.bundle.min.js',
+            [],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'a4a-ai-overlayscrollbars',
+            $assets_url . 'vendor/overlayscrollbars/overlayscrollbars.browser.es6.min.js',
+            [],
+            self::VERSION,
+            true
+        );
+
+        wp_register_script(
+            'a4a-ai-adminlte',
+            $assets_url . 'vendor/adminlte/js/adminlte.min.js',
+            [
+                'a4a-ai-bootstrap',
+                'a4a-ai-overlayscrollbars',
+            ],
+            self::VERSION,
+            true
+        );
 
         wp_register_script(
             $handle,
             $script_path,
-            [],
+            [
+                'a4a-ai-adminlte',
+            ],
             self::VERSION,
             true
         );
@@ -319,6 +373,7 @@ final class A4A_AI_Plugin {
             ]
         );
 
+        wp_enqueue_style('a4a-ai-adminlte');
         wp_enqueue_script($handle);
     }
 
@@ -1915,5 +1970,3 @@ register_deactivation_hook( __FILE__, [ $a4a_ai_plugin, 'deactivate' ] );
 if ( is_admin() && class_exists( 'A4A_AI_Tools' ) ) {
     A4A_AI_Tools::instance()->init();
 }
-
-
