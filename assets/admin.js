@@ -411,9 +411,10 @@
       if (!stored) {
         return settings;
       }
-      const cleaned = typeof stored === 'string'
-        ? stored.replace(/^\uFEFF+/u, '').replace(/\u200B+/gu, '')
-        : stored;
+      const cleaned =
+        typeof stored === 'string'
+          ? stored.replace(/[\uFEFF\u200B\u2060]+/gu, '')
+          : stored;
       if (!cleaned) {
         return settings;
       }
