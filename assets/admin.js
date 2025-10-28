@@ -11,33 +11,53 @@
     return;
   }
 
-  let shadow;
-  try {
-    shadow = host.attachShadow({ mode: 'open' });
-  } catch (error) {
-    console.error('axs4all - AI: failed to attach Shadow DOM', error);
-    host.textContent = 'Unable to initialise admin interface.';
-    return;
+  const root = host;
+  root.innerHTML = '';
+
+  function ensureHead() {
+    return document.head || document.getElementsByTagName('head')[0] || document.documentElement;
   }
 
-  function injectStylesheet(href, integrity) {
+  function injectStylesheet(href, integrity, id) {
+    const head = ensureHead();
+    if (id) {
+      const existing = head.querySelector(`link#${id}`);
+      if (existing) {
+        return existing;
+      }
+    }
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
+    if (id) {
+      link.id = id;
+    }
     if (integrity) {
       link.integrity = integrity;
       link.crossOrigin = 'anonymous';
       link.referrerPolicy = 'no-referrer';
     }
-    shadow.appendChild(link);
+    head.appendChild(link);
     return link;
   }
 
-  injectStylesheet('https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css');
+  injectStylesheet(
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
+    undefined,
+    'a4a-ai-bootstrap-css'
+  );
 
-  const baseStyle = document.createElement('style');
+  const head = ensureHead();
+
+  let baseStyle = head.querySelector('style#a4a-ai-base-style');
+  if (!baseStyle) {
+    baseStyle = document.createElement('style');
+    baseStyle.id = 'a4a-ai-base-style';
+    head.appendChild(baseStyle);
+  }
+
   baseStyle.textContent = `
-    :host {
+    #a4a-ai-root {
       display: block;
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
       --a4a-color-primary: #0d6efd;
@@ -107,10 +127,14 @@
     .a4a-icon-picker-empty { text-align: center; padding: 2rem 1rem; color: #6c757d; }
     .a4a-icon-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
   `;
-  shadow.appendChild(baseStyle);
+  root.classList.add('a4a-ai-root');
 
-  const themeStyle = document.createElement('style');
-  shadow.appendChild(themeStyle);
+  let themeStyle = head.querySelector('style#a4a-ai-theme-style');
+  if (!themeStyle) {
+    themeStyle = document.createElement('style');
+    themeStyle.id = 'a4a-ai-theme-style';
+    head.appendChild(themeStyle);
+  }
 
   const ICONS = Object.assign(Object.create(null), {
     plus: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`,
@@ -323,7 +347,7 @@
     const outlineDangerBg = hexToRgba(danger, 0.12);
 
     themeStyle.textContent = `
-      :host {
+      #a4a-ai-root {
         --a4a-color-primary: ${primary};
         --a4a-color-success: ${success};
         --a4a-color-danger: ${danger};
@@ -597,7 +621,7 @@
     `;
     const app = document.createElement('div');
     app.innerHTML = markup;
-    shadow.appendChild(app);
+    root.appendChild(app);
 
     const els = {
       notice: app.querySelector('#a4a-clients-notice'),
@@ -1353,7 +1377,7 @@
 
     const app = document.createElement('div');
     app.innerHTML = markup;
-    shadow.appendChild(app);
+    root.appendChild(app);
 
     const els = {
       notice: app.querySelector('#a4a-settings-notice'),
@@ -1920,7 +1944,7 @@
 
     const app = document.createElement('div');
     app.innerHTML = markup;
-    shadow.appendChild(app);
+    root.appendChild(app);
 
     const els = {
       notice: app.querySelector('#a4a-categories-notice'),
@@ -2461,7 +2485,7 @@
 
   const app = document.createElement('div');
   app.innerHTML = markup;
-  shadow.appendChild(app);
+  root.appendChild(app);
 
   const state = {
     items: [],
