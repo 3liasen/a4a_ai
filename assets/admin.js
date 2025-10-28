@@ -584,6 +584,10 @@
       display: flex;
       flex-direction: column;
     }
+    .a4a-adminlte .display-6 {
+      font-size: clamp(1.75rem, 1.75rem + 0.5vw, 2rem);
+      letter-spacing: -0.015em;
+    }
     .a4a-adminlte .content-header {
       padding-bottom: 0.25rem;
       margin-bottom: 1.5rem;
