@@ -20,6 +20,18 @@
 
   const head = ensureHead();
 
+  function escapeHtml(value) {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   let baseStyle = head.querySelector('style#a4a-ai-base-style');
   if (!baseStyle) {
     baseStyle = document.createElement('style');
