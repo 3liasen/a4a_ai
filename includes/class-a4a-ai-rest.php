@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class A4A_AI_REST {
@@ -144,6 +144,25 @@ class A4A_AI_REST {
             [
                 'methods'             => WP_REST_Server::READABLE,
                 'callback'            => [ $plugin, 'rest_list_icons' ],
+                'permission_callback' => [ $plugin, 'can_manage' ],
+            ],
+        ] );
+
+        register_rest_route( $ns, '/debug-log', [
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [ $plugin, 'rest_get_debug_log' ],
+                'permission_callback' => [ $plugin, 'can_manage' ],
+            ],
+            [
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => [ $plugin, 'rest_append_debug_log' ],
+                'permission_callback' => [ $plugin, 'can_manage' ],
+                'args'                => $plugin->debug_log_args(),
+            ],
+            [
+                'methods'             => WP_REST_Server::DELETABLE,
+                'callback'            => [ $plugin, 'rest_clear_debug_log' ],
                 'permission_callback' => [ $plugin, 'can_manage' ],
             ],
         ] );

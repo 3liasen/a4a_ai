@@ -8,7 +8,7 @@ if ( ! defined('A4A_AI_PLUGIN_FILE') ) {
 /**
  * Plugin Name: axs4all - AI
  * Description: Manage crawl targets for AI-powered processing with a Bootstrap-based admin experience.
- * Version: 0.5.4
+ * Version: 0.6.0
  * Author: axs4all
  * Text Domain: a4a-ai
  */
@@ -19,12 +19,13 @@ if (!defined('ABSPATH')) {
 
 if ( ! class_exists( 'A4A_AI_Plugin', false ) ) :
 final class A4A_AI_Plugin {
-    const VERSION = '0.5.4';
+    const VERSION = '0.6.0';
     const SLUG = 'a4a-ai';
     const CPT = 'a4a_url';
     const CLIENT_CPT = 'a4a_client';
     const CATEGORY_CPT = 'a4a_category';
     const SETTINGS_OPTION = 'a4a_ai_settings';
+    const LOG_FILENAME = 'a4a-ai-diagnostics.log';
 
     /**
      * @var A4A_AI_Plugin|null
@@ -237,6 +238,16 @@ final class A4A_AI_Plugin {
             [$this, 'render_settings_page']
         );
         $this->store_admin_hook($settings_hook);
+
+        $debug_hook = add_submenu_page(
+            self::SLUG,
+            __('Diagnostics', 'a4a-ai'),
+            __('Diagnostics', 'a4a-ai'),
+            $capability,
+            self::SLUG . '-debug',
+            [$this, 'render_debug_page']
+        );
+        $this->store_admin_hook($debug_hook);
     }
 
     /**
@@ -265,6 +276,13 @@ final class A4A_AI_Plugin {
      */
     public function render_settings_page() {
         $this->render_admin_app('settings');
+    }
+
+    /**
+     * Renders the diagnostics screen.
+     */
+    public function render_debug_page() {
+        $this->render_admin_app('debug');
     }
 
     /**
@@ -365,11 +383,13 @@ final class A4A_AI_Plugin {
                 'categoriesRestUrl' => esc_url_raw(rest_url('a4a/v1/categories')),
                 'settingsRestUrl' => esc_url_raw(rest_url('a4a/v1/settings')),
                 'iconsRestUrl' => esc_url_raw(rest_url('a4a/v1/icons')),
+                'debugRestUrl' => esc_url_raw(rest_url('a4a/v1/debug-log')),
                 'runUrlTemplate' => esc_url_raw(rest_url('a4a/v1/urls/%d/run')),
                 'defaultView' => $this->determine_default_view($hook),
                 'nonce' => wp_create_nonce('wp_rest'),
                 'assetsUrl' => plugin_dir_url(__FILE__) . 'assets/',
                 'version' => self::VERSION,
+                'debugLogName' => self::LOG_FILENAME,
             ]
         );
 
@@ -391,6 +411,8 @@ final class A4A_AI_Plugin {
                 return 'categories';
             case 'a4a-ai_page_' . self::SLUG . '-settings':
                 return 'settings';
+            case 'a4a-ai_page_' . self::SLUG . '-debug':
+                return 'debug';
             default:
                 return 'urls';
         }
@@ -1871,6 +1893,185 @@ final class A4A_AI_Plugin {
         $value = substr($value, 0, 255);
 
         return preg_replace('/[^A-Za-z0-9_\-\=\.\:\|\+]/', '', $value);
+    }
+
+    /**
+     * Returns the directory path used for plugin diagnostics.
+     */
+    private function get_log_directory_path() : string {
+        $uploads = wp_upload_dir();
+        if (empty($uploads['error']) && !empty($uploads['basedir'])) {
+            $candidate = trailingslashit($uploads['basedir']) . 'a4a-ai';
+            if (wp_mkdir_p($candidate) || is_dir($candidate)) {
+                return $candidate;
+            }
+        }
+
+        $fallback = trailingslashit(plugin_dir_path(__FILE__)) . 'logs';
+        wp_mkdir_p($fallback);
+
+        return $fallback;
+    }
+
+    /**
+     * Ensures the diagnostics log file exists and returns its path.
+     */
+    private function ensure_log_file_exists() : string {
+        $file = trailingslashit($this->get_log_directory_path()) . self::LOG_FILENAME;
+        if (!file_exists($file)) {
+            $handle = @fopen($file, 'w');
+            if ($handle) {
+                fclose($handle);
+            }
+        }
+        @chmod($file, 0640);
+
+        return $file;
+    }
+
+    /**
+     * Returns the current diagnostics log snapshot.
+     */
+    private function get_debug_log_snapshot() : array {
+        $path = $this->ensure_log_file_exists();
+        if (!is_readable($path)) {
+            return [
+                'content' => '',
+                'size' => 0,
+                'basename' => basename($path),
+                'last_modified' => null,
+                'truncated' => false,
+            ];
+        }
+
+        $size = filesize($path);
+        $size = $size ? (int) $size : 0;
+        $max_bytes = 200000; // ~200 KB
+        $truncated = $size > $max_bytes;
+        $offset = $truncated ? max(0, $size - $max_bytes) : 0;
+        $content = file_get_contents($path, false, null, $offset);
+        if ($content === false) {
+            $content = '';
+        }
+
+        return [
+            'content' => $content,
+            'size' => $size,
+            'basename' => basename($path),
+            'last_modified' => filemtime($path) ? gmdate('c', (int) filemtime($path)) : null,
+            'truncated' => $truncated,
+        ];
+    }
+
+    /**
+     * Formats a diagnostics entry.
+     */
+    private function format_debug_log_entry(string $message, array $context = []) : string {
+        $timestamp = gmdate('Y-m-d H:i:s');
+        $user      = wp_get_current_user();
+        $user_label = ($user instanceof WP_User && $user->exists())
+            ? sprintf('%s (%d)', $user->user_login, $user->ID)
+            : 'system';
+
+        $clean_message = preg_replace('/\s+/u', ' ', trim($message));
+        $line = sprintf('[%s][%s] %s', $timestamp, $user_label, $clean_message);
+
+        if (!empty($context)) {
+            $encoded = wp_json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if ($encoded) {
+                $line .= ' ' . $encoded;
+            }
+        }
+
+        return $line;
+    }
+
+    /**
+     * Appends a diagnostics entry to the log.
+     */
+    private function append_debug_log_entry(string $message, array $context = []) : bool {
+        $path = $this->ensure_log_file_exists();
+        $entry = $this->format_debug_log_entry($message, $context) . PHP_EOL;
+
+        return false !== file_put_contents($path, $entry, FILE_APPEND | LOCK_EX);
+    }
+
+    /**
+     * Arguments for the diagnostics REST endpoint.
+     */
+    public function debug_log_args() : array {
+        return [
+            'message' => [
+                'type' => 'string',
+                'required' => true,
+                'sanitize_callback' => static function ($value) {
+                    return sanitize_textarea_field($value);
+                },
+                'validate_callback' => static function ($value) {
+                    return is_string($value) && trim($value) !== '';
+                },
+            ],
+            'context' => [
+                'type' => 'object',
+                'required' => false,
+            ],
+        ];
+    }
+
+    /**
+     * REST: Returns the current diagnostics log snapshot.
+     */
+    public function rest_get_debug_log() {
+        return rest_ensure_response($this->get_debug_log_snapshot());
+    }
+
+    /**
+     * REST: Appends a diagnostics entry.
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function rest_append_debug_log($request) {
+        $message = (string) $request->get_param('message');
+        $message = trim($message);
+        if ($message === '') {
+            return new WP_Error('a4a_ai_invalid_log', __('Please provide a message to append.', 'a4a-ai'), ['status' => 400]);
+        }
+
+        $context = $request->get_param('context');
+        if (!is_array($context)) {
+            $context = [];
+        } else {
+            $sanitised_context = [];
+            foreach ($context as $key => $value) {
+                if (is_scalar($value)) {
+                    $sanitised_key = sanitize_key((string) $key);
+                    if ($sanitised_key === '') {
+                        continue;
+                    }
+                    $sanitised_context[$sanitised_key] = sanitize_text_field((string) $value);
+                }
+            }
+            $context = $sanitised_context;
+        }
+
+        if (!$this->append_debug_log_entry($message, $context)) {
+            return new WP_Error('a4a_ai_log_write_failed', __('Unable to write to diagnostics log.', 'a4a-ai'), ['status' => 500]);
+        }
+
+        return rest_ensure_response($this->get_debug_log_snapshot());
+    }
+
+    /**
+     * REST: Clears the diagnostics log.
+     */
+    public function rest_clear_debug_log() {
+        $path = $this->ensure_log_file_exists();
+        if (false === file_put_contents($path, '', LOCK_EX)) {
+            return new WP_Error('a4a_ai_log_clear_failed', __('Unable to clear diagnostics log.', 'a4a-ai'), ['status' => 500]);
+        }
+
+        return rest_ensure_response($this->get_debug_log_snapshot());
     }
 
     /**

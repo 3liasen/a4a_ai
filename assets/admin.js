@@ -4,6 +4,283 @@
     return;
   }
 
+  function initDebug() {
+    const endpoint = typeof config.debugRestUrl === 'string' ? config.debugRestUrl.replace(/\/$/, '') : '';
+    const defaultLogName =
+      typeof config.debugLogName === 'string' && config.debugLogName ? config.debugLogName : 'a4a-ai-diagnostics.log';
+
+    const layout = renderAdminLTEPage({
+      viewKey: 'debug',
+      title: 'Diagnostics',
+      subtitle: 'Inspect plugin logs, capture notes, and share details with the engineering team.'
+    });
+    bindNavigation(layout.navLinks, loadView, layout.toggleButton, layout.sidebar);
+
+    if (!endpoint) {
+      layout.content.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+          Diagnostics endpoint not available. Please reload or check REST configuration.
+        </div>
+      `;
+      return;
+    }
+
+    layout.content.innerHTML = `
+      <div class="a4a-section">
+        <div id="a4a-debug-notice" class="alert d-none" role="alert"></div>
+        <div class="a4a-debug-grid">
+          <div class="card shadow-sm h-100" data-debug-card>
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h2 class="h6 mb-0">Diagnostics Log</h2>
+              <div class="a4a-debug-toolbar">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-action="refresh">${icon('refresh', 'me-1')}Refresh</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-action="copy">${icon('copy', 'me-1')}Copy</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-action="download">${icon('save', 'me-1')}Download</button>
+                <button class="btn btn-outline-danger btn-sm" type="button" data-action="clear">${icon('trash', 'me-1')}Clear</button>
+              </div>
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+              <div class="a4a-debug-meta">
+                <span id="a4a-debug-filename">${escapeHtml(defaultLogName)}</span>
+                <span id="a4a-debug-size" class="ms-2"></span>
+                <span id="a4a-debug-updated" class="ms-2"></span>
+              </div>
+              <pre class="a4a-debug-log" id="a4a-debug-log">Loading log entriesâ€¦</pre>
+            </div>
+          </div>
+          <div class="card shadow-sm h-100">
+            <div class="card-header">
+              <h2 class="h6 mb-0">Append a Diagnostic Note</h2>
+            </div>
+            <div class="card-body">
+              <form id="a4a-debug-form" class="vstack gap-3">
+                <div>
+                  <label class="form-label" for="a4a-debug-message">Message</label>
+                  <textarea class="form-control" id="a4a-debug-message" rows="6" placeholder="Describe recent issues, reproduction steps, or observations."></textarea>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="submit" class="btn btn-primary">${icon('save', 'me-1')}Append Note</button>
+                  <button type="button" class="btn btn-outline-secondary" data-action="reset">${icon('eraser', 'me-1')}Reset</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const app = layout.wrapper;
+    const els = {
+      notice: app.querySelector('#a4a-debug-notice'),
+      logCard: app.querySelector('[data-debug-card]'),
+      logContent: app.querySelector('#a4a-debug-log'),
+      metaFilename: app.querySelector('#a4a-debug-filename'),
+      metaSize: app.querySelector('#a4a-debug-size'),
+      metaUpdated: app.querySelector('#a4a-debug-updated'),
+      refreshBtn: app.querySelector('[data-action="refresh"]'),
+      copyBtn: app.querySelector('[data-action="copy"]'),
+      downloadBtn: app.querySelector('[data-action="download"]'),
+      clearBtn: app.querySelector('[data-action="clear"]'),
+      form: app.querySelector('#a4a-debug-form'),
+      message: app.querySelector('#a4a-debug-message'),
+      resetBtn: app.querySelector('[data-action="reset"]')
+    };
+
+    const state = {
+      loading: false,
+      content: '',
+      size: 0,
+      truncated: false,
+      updated: '',
+      filename: defaultLogName
+    };
+
+    function setBusy(flag) {
+      if (els.logCard) {
+        els.logCard.classList.toggle('a4a-busy', Boolean(flag));
+      }
+      state.loading = Boolean(flag);
+    }
+
+    function setNotice(message, type = 'info') {
+      if (!els.notice) {
+        return;
+      }
+      if (!message) {
+        els.notice.className = 'alert d-none';
+        els.notice.innerHTML = '';
+        return;
+      }
+      els.notice.className = `alert alert-${type}`;
+      els.notice.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center gap-3">
+          <span>${escapeHtml(message)}</span>
+          <button type="button" class="btn-close" data-debug-dismiss></button>
+        </div>
+      `;
+    }
+
+    if (els.notice) {
+      els.notice.addEventListener('click', (event) => {
+        if (event.target.closest('[data-debug-dismiss]')) {
+          setNotice('');
+        }
+      });
+    }
+
+    function updateView() {
+      if (els.logContent) {
+        els.logContent.textContent = state.content ? state.content : 'No diagnostic entries recorded yet.';
+      }
+      if (els.metaFilename) {
+        els.metaFilename.textContent = state.filename;
+      }
+      if (els.metaSize) {
+        const base = `Size: ${formatBytes(state.size)}`;
+        els.metaSize.textContent = state.truncated ? `${base} (showing last entries)` : base;
+      }
+      if (els.metaUpdated) {
+        els.metaUpdated.textContent = state.updated ? `Updated: ${state.updated}` : 'Updated: --';
+      }
+    }
+
+    async function refreshLog(showMessage = false) {
+      setBusy(true);
+      try {
+        const response = await request('GET', endpoint);
+        state.content = typeof response?.content === 'string' ? response.content : '';
+        state.size = Number(response?.size) || 0;
+        state.truncated = Boolean(response?.truncated);
+        state.filename = response?.basename || defaultLogName;
+        state.updated = response?.last_modified ? new Date(response.last_modified).toLocaleString() : '';
+        updateView();
+        if (showMessage) {
+          setNotice('Log refreshed.', 'success');
+        } else {
+          setNotice('');
+        }
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to load diagnostics log.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function clearLog() {
+      if (!window.confirm('Clear the diagnostics log? This cannot be undone.')) {
+        return;
+      }
+      setBusy(true);
+      try {
+        const response = await request('DELETE', endpoint);
+        state.content = typeof response?.content === 'string' ? response.content : '';
+        state.size = Number(response?.size) || 0;
+        state.truncated = Boolean(response?.truncated);
+        state.filename = response?.basename || defaultLogName;
+        state.updated = response?.last_modified ? new Date(response.last_modified).toLocaleString() : '';
+        updateView();
+        setNotice('Diagnostics log cleared.', 'success');
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to clear diagnostics log.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function appendLogEntry(message) {
+      setBusy(true);
+      try {
+        const response = await request('POST', endpoint, { message });
+        state.content = typeof response?.content === 'string' ? response.content : '';
+        state.size = Number(response?.size) || 0;
+        state.truncated = Boolean(response?.truncated);
+        state.filename = response?.basename || defaultLogName;
+        state.updated = response?.last_modified ? new Date(response.last_modified).toLocaleString() : '';
+        updateView();
+        setNotice('Note appended to diagnostics log.', 'success');
+      } catch (error) {
+        console.error(error);
+        setNotice(error.message || 'Failed to append log entry.', 'danger');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    if (els.refreshBtn) {
+      els.refreshBtn.addEventListener('click', () => refreshLog(true));
+    }
+    if (els.copyBtn) {
+      els.copyBtn.addEventListener('click', async () => {
+        const payload = state.content || '';
+        if (!payload) {
+          setNotice('Log is currently empty, nothing to copy.', 'info');
+          return;
+        }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(payload);
+          } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = payload;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+          }
+          setNotice('Diagnostics log copied to clipboard.', 'success');
+        } catch (error) {
+          console.error(error);
+          setNotice('Could not copy diagnostics log automatically.', 'warning');
+        }
+      });
+    }
+    if (els.downloadBtn) {
+      els.downloadBtn.addEventListener('click', () => {
+        const blob = new Blob([state.content || ''], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = state.filename || defaultLogName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      });
+    }
+    if (els.clearBtn) {
+      els.clearBtn.addEventListener('click', () => {
+        clearLog();
+      });
+    }
+    if (els.form) {
+      els.form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const message = els.message ? els.message.value.trim() : '';
+        if (!message) {
+          setNotice('Please enter a diagnostic note before appending.', 'warning');
+          return;
+        }
+        appendLogEntry(message);
+        if (els.message) {
+          els.message.value = '';
+        }
+      });
+    }
+    if (els.resetBtn && els.message) {
+      els.resetBtn.addEventListener('click', () => {
+        els.message.value = '';
+        els.message.focus();
+      });
+    }
+
+    refreshLog();
+  }
+
   const config = typeof a4aAI === 'object' ? a4aAI : null;
   if (!config || !config.restUrl || !config.nonce) {
     console.error('axs4all - AI: Missing localized REST configuration.');
@@ -73,6 +350,22 @@
       hour12: false
     };
     return { relative: timeAgo(date), absolute: date.toLocaleString(undefined, options) };
+  }
+
+  function formatBytes(bytes) {
+    const value = Number(bytes);
+    if (!Number.isFinite(value) || value <= 0) {
+      return '0 B';
+    }
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = value;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    const precision = size >= 100 ? 0 : size >= 10 ? 1 : 2;
+    return `${size.toFixed(precision)} ${units[unitIndex]}`;
   }
 
   let baseStyle = head.querySelector('style#a4a-ai-base-style');
@@ -153,6 +446,21 @@
     .a4a-icon-picker-grid button .a4a-icon-picker-label { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: #495057; }
     .a4a-icon-picker-empty { text-align: center; padding: 2rem 1rem; color: #6c757d; }
     .a4a-icon-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .a4a-section { display: flex; flex-direction: column; gap: 1.5rem; }
+    .a4a-categories-grid { display: grid; grid-template-columns: minmax(0, 70%) minmax(0, 25%); gap: 5%; align-items: start; }
+    .a4a-categories-grid__library,
+    .a4a-categories-grid__form { min-width: 0; }
+    @media (max-width: 1200px) {
+      .a4a-categories-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+    }
+    .a4a-debug-grid { display: grid; grid-template-columns: minmax(0, 70%) minmax(0, 25%); gap: 5%; align-items: start; }
+    @media (max-width: 1280px) {
+      .a4a-debug-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+    }
+    .a4a-debug-log { background: #0f172a; color: #e2e8f0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; border-radius: 0.85rem; padding: 1.25rem; min-height: 320px; max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2); }
+    .a4a-debug-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .a4a-debug-meta { font-size: 0.85rem; color: #6c757d; }
+    .a4a-debug-grid .card { height: 100%; }
     .a4a-adminlte {
       display: grid;
       grid-template-columns: 240px minmax(0, 1fr);
@@ -364,7 +672,8 @@
       { key: 'urls', label: 'URL Hub', icon: 'link' },
       { key: 'clients', label: 'Clients', icon: 'list' },
       { key: 'categories', label: 'Categories', icon: 'sparkles' },
-      { key: 'settings', label: 'Settings', icon: 'settings' }
+      { key: 'settings', label: 'Settings', icon: 'settings' },
+      { key: 'debug', label: 'Diagnostics', icon: 'bug' }
     ];
     return entries
       .map((entry) => {
@@ -498,6 +807,7 @@
     copy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="12" rx="2"/><path d="M5 13V7a2 2 0 0 1 2-2h6"/></svg>`,
     circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`,
     search: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-3-3"/></svg>`,
+    bug: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><path d="M3 13h4"/><path d="M17 13h4"/><path d="M4 7l3 2"/><path d="M20 7l-3 2"/><path d="M10 9h4"/><path d="M10 13h4"/><path d="M10 17h4"/><path d="M6 15v-2a6 6 0 0 1 12 0v2a6 6 0 0 1-12 0Z"/></svg>`,
     menu: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
     settings: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
   });
@@ -523,7 +833,8 @@
     circle: { label: 'Default', usage: 'Fallback icon if no icon is found.' },
     search: { label: 'Search', usage: 'Used for search inputs or filters.' },
     menu: { label: 'Navigation', usage: 'Used for sidebar toggle buttons.' },
-    settings: { label: 'Settings', usage: 'Used for configuration or preferences actions.' }
+    settings: { label: 'Settings', usage: 'Used for configuration or preferences actions.' },
+    bug: { label: 'Diagnostics', usage: 'Used for debug or troubleshooting sections.' }
   });
 
   const STORAGE_KEY = 'a4a-ai-settings';
@@ -2269,63 +2580,63 @@
     }
 
     layout.content.innerHTML = `
-      <div class="row g-4">
-        <div class="col-12">
-          <div id="a4a-categories-notice" class="alert d-none" role="alert"></div>
-        </div>
-        <div class="col-lg-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h2 class="h6 mb-0">Category Library</h2>
-              <button class="btn btn-outline-primary btn-sm" type="button" data-action="new">${icon('plus', 'me-1')}New Category</button>
-            </div>
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                  <thead class="table-light">
-                    <tr>
-                      <th>Name</th>
-                      <th style="width: 120px;">Options</th>
-                      <th class="text-end" style="width: 110px;">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="a4a-category-table">
-                    <tr><td colspan="3" class="text-center text-muted py-3">Loading categories...</td></tr>
-                  </tbody>
-                </table>
+      <div class="a4a-section">
+        <div id="a4a-categories-notice" class="alert d-none" role="alert"></div>
+        <div class="a4a-categories-grid">
+          <div class="a4a-categories-grid__library">
+            <div class="card shadow-sm h-100">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h6 mb-0">Category Library</h2>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-action="new">${icon('plus', 'me-1')}New Category</button>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Name</th>
+                        <th style="width: 120px;">Options</th>
+                        <th class="text-end" style="width: 110px;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="a4a-category-table">
+                      <tr><td colspan="3" class="text-center text-muted py-3">Loading categories...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="col-lg-6">
-          <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <div>
-                <h2 class="h6 mb-0" id="a4a-category-form-title">New Category</h2>
-                <p class="text-muted small mb-0">Options can be reordered later.</p>
+          <div class="a4a-categories-grid__form">
+            <div class="card shadow-sm h-100">
+              <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <h2 class="h6 mb-0" id="a4a-category-form-title">New Category</h2>
+                  <p class="text-muted small mb-0">Options can be reordered later.</p>
+                </div>
+                <span class="badge text-bg-primary" id="a4a-category-mode">New</span>
               </div>
-              <span class="badge text-bg-primary" id="a4a-category-mode">New</span>
-            </div>
-            <div class="card-body">
-              <form id="a4a-category-form" class="vstack gap-3">
-                <input type="hidden" id="a4a-category-id" />
-                <div>
-                  <label class="form-label" for="a4a-category-name">Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="a4a-category-name" placeholder="Category name" required />
-                </div>
-                <div>
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label mb-0" for="a4a-category-options">Options</label>
-                    <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-category-option-add">${icon('plus', 'me-1')}Add option</button>
+              <div class="card-body">
+                <form id="a4a-category-form" class="vstack gap-3">
+                  <input type="hidden" id="a4a-category-id" />
+                  <div>
+                    <label class="form-label" for="a4a-category-name">Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="a4a-category-name" placeholder="Category name" required />
                   </div>
-                  <div id="a4a-category-options" class="vstack gap-2"></div>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                  <button type="submit" class="btn btn-primary" id="a4a-category-save">${icon('save', 'me-1')}Save Category</button>
-                  <button type="button" class="btn btn-outline-secondary" id="a4a-category-reset">${icon('eraser', 'me-1')}Reset</button>
-                  <button type="button" class="btn btn-outline-danger ms-auto d-none" id="a4a-category-delete">${icon('trash', 'me-1')}Delete</button>
-                </div>
-              </form>
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <label class="form-label mb-0" for="a4a-category-options">Options</label>
+                      <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-category-option-add">${icon('plus', 'me-1')}Add option</button>
+                    </div>
+                    <div id="a4a-category-options" class="vstack gap-2"></div>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary" id="a4a-category-save">${icon('save', 'me-1')}Save Category</button>
+                    <button type="button" class="btn btn-outline-secondary" id="a4a-category-reset">${icon('eraser', 'me-1')}Reset</button>
+                    <button type="button" class="btn btn-outline-danger ms-auto d-none" id="a4a-category-delete">${icon('trash', 'me-1')}Delete</button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
@@ -3583,7 +3894,7 @@
 
   function loadView(view) {
     const candidate = typeof view === 'string' ? view.toLowerCase() : 'urls';
-    const validViews = ['urls', 'clients', 'categories', 'settings'];
+    const validViews = ['urls', 'clients', 'categories', 'settings', 'debug'];
     const nextView = validViews.includes(candidate) ? candidate : 'urls';
     if (currentView === nextView && root.children.length) {
       return;
@@ -3599,6 +3910,9 @@
         break;
       case 'settings':
         initSettings();
+        break;
+      case 'debug':
+        initDebug();
         break;
       default:
         initUrls();
