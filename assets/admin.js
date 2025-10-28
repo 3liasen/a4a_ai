@@ -960,11 +960,20 @@
       if (!stored) {
         return settings;
       }
-      const cleaned =
+      let cleaned =
         typeof stored === 'string'
           ? stored.replace(/[\uFEFF\u200B\u200C\u200D\u2060]+/gu, '')
           : stored;
+      if (typeof cleaned === 'string') {
+        cleaned = cleaned.trim();
+        if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+          cleaned = cleaned.slice(1, -1).trim();
+        }
+      }
       if (!cleaned) {
+        if (typeof window.localStorage !== 'undefined') {
+          window.localStorage.removeItem(STORAGE_KEY);
+        }
         return settings;
       }
       const parsed = JSON.parse(cleaned);
@@ -986,11 +995,12 @@
         }
     }
     } catch (error) {
-      console.warn('axs4all - AI: unable to parse saved settings, using defaults.', error);
-      try {
-        window.localStorage.removeItem(STORAGE_KEY);
-      } catch (storageError) {
-        console.debug('axs4all - AI: failed to clear corrupted settings.', storageError);
+      if (typeof window.localStorage !== 'undefined') {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          // Ignore failure to clear corrupted storage.
+        }
       }
     }
     return settings;
