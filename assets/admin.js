@@ -411,7 +411,13 @@
       if (!stored) {
         return settings;
       }
-      const parsed = JSON.parse(stored);
+      const cleaned = typeof stored === 'string'
+        ? stored.replace(/^\uFEFF+/u, '').replace(/\u200B+/gu, '')
+        : stored;
+      if (!cleaned) {
+        return settings;
+      }
+      const parsed = JSON.parse(cleaned);
       if (parsed && typeof parsed === 'object') {
         if (normalizeHex(parsed.primaryColor)) {
           settings.primaryColor = normalizeHex(parsed.primaryColor);
@@ -428,9 +434,14 @@
         if (parsed.iconOverrides) {
           settings.iconOverrides = sanitizeIconOverrides(parsed.iconOverrides);
         }
-      }
+    }
     } catch (error) {
       console.warn('axs4all - AI: unable to parse saved settings, using defaults.', error);
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch (storageError) {
+        console.debug('axs4all - AI: failed to clear corrupted settings.', storageError);
+      }
     }
     return settings;
   }
