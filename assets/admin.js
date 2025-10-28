@@ -32,6 +32,49 @@
       .replace(/'/g, '&#039;');
   }
 
+  function timeAgo(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return 'Never';
+    }
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+    const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
+    const units = [
+      ['year', 31536000],
+      ['month', 2592000],
+      ['week', 604800],
+      ['day', 86400],
+      ['hour', 3600],
+      ['minute', 60],
+      ['second', 1]
+    ];
+    for (const [unit, seconds] of units) {
+      if (Math.abs(diffSeconds) >= seconds || unit === 'second') {
+        return rtf.format(Math.round(diffSeconds / seconds), unit);
+      }
+    }
+    return 'just now';
+  }
+
+  function formatModified(gmtString) {
+    if (!gmtString) {
+      return { relative: 'Never', absolute: '--' };
+    }
+    const date = new Date(`${gmtString}Z`);
+    if (Number.isNaN(date.getTime())) {
+      return { relative: 'Never', absolute: '--' };
+    }
+    const options = {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
+    return { relative: timeAgo(date), absolute: date.toLocaleString(undefined, options) };
+  }
+
   let baseStyle = head.querySelector('style#a4a-ai-base-style');
   if (!baseStyle) {
     baseStyle = document.createElement('style');
@@ -2897,18 +2940,6 @@
   updateClock();
   setInterval(updateClock, 60000);
 
-  function escapeHtml(str) {
-    if (typeof str !== 'string') {
-      return '';
-    }
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
   function getScheduleDisplayMeta(schedule) {
     const trimmed = typeof schedule === 'string' ? schedule.trim() : '';
     if (trimmed) {
@@ -2932,49 +2963,6 @@
   function renderScheduleBadge(schedule) {
     const meta = getScheduleDisplayMeta(schedule);
     return `<span class="${meta.badgeClass}">${icon(meta.icon)}<span>${escapeHtml(meta.text)}</span></span>`;
-  }
-
-  function timeAgo(date) {
-    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-      return 'Never';
-    }
-    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
-    const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
-    const units = [
-      ['year', 31536000],
-      ['month', 2592000],
-      ['week', 604800],
-      ['day', 86400],
-      ['hour', 3600],
-      ['minute', 60],
-      ['second', 1]
-    ];
-    for (const [unit, seconds] of units) {
-      if (Math.abs(diffSeconds) >= seconds || unit === 'second') {
-        return rtf.format(Math.round(diffSeconds / seconds), unit);
-      }
-    }
-    return 'just now';
-  }
-
-  function formatModified(gmtString) {
-    if (!gmtString) {
-      return { relative: 'Never', absolute: '--' };
-    }
-    const date = new Date(`${gmtString}Z`);
-    if (Number.isNaN(date.getTime())) {
-      return { relative: 'Never', absolute: '--' };
-    }
-    const options = {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    };
-    return { relative: timeAgo(date), absolute: date.toLocaleString(undefined, options) };
   }
 
   function summarize(value, length = 80) {
