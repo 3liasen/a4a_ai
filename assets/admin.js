@@ -388,14 +388,6 @@
     root.appendChild(wrapper);
     activateAdminLTE();
     const toggleButton = wrapper.querySelector('[data-widget="pushmenu"]');
-    const sidebar = wrapper.querySelector('.main-sidebar');
-    if (toggleButton && sidebar) {
-      toggleButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        const isOpen = sidebar.classList.toggle('is-open');
-        toggleButton.setAttribute('aria-expanded', String(isOpen));
-      });
-    }
     return {
       wrapper,
       content: wrapper.querySelector('[data-content-slot]'),
@@ -405,7 +397,15 @@
     };
   }
 
-  function bindNavigation(links, onNavigate) {
+  function bindNavigation(links, onNavigate, toggleButton, sidebar) {
+    if (toggleButton && sidebar) {
+      toggleButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        const isOpen = sidebar.classList.toggle('is-open');
+        toggleButton.setAttribute('aria-expanded', String(isOpen));
+      });
+    }
+
     links.forEach((link) => {
       link.addEventListener('click', (event) => {
         event.preventDefault();
@@ -413,12 +413,10 @@
         if (!target || typeof onNavigate !== 'function') {
           return;
         }
-        const sidebar = link.closest('.main-sidebar');
-        if (sidebar) {
+        if (sidebar && sidebar.classList.contains('is-open')) {
           sidebar.classList.remove('is-open');
-          const toggle = sidebar.closest('.wrapper')?.querySelector('[data-widget="pushmenu"]');
-          if (toggle) {
-            toggle.setAttribute('aria-expanded', 'false');
+          if (toggleButton) {
+            toggleButton.setAttribute('aria-expanded', 'false');
           }
         }
         onNavigate(target);
@@ -821,7 +819,7 @@
       title: 'Clients',
       subtitle: 'Manage organisations, metadata, and crawl targets.'
     });
-    bindNavigation(layout.navLinks, loadView);
+    bindNavigation(layout.navLinks, loadView, layout.toggleButton, layout.sidebar);
 
     if (!baseClientsUrl) {
       layout.content.innerHTML = `
@@ -1604,7 +1602,7 @@
       title: 'Settings',
       subtitle: 'Adjust the admin interface and configure AI provider access.'
     });
-    bindNavigation(layout.navLinks, loadView);
+    bindNavigation(layout.navLinks, loadView, layout.toggleButton, layout.sidebar);
 
     layout.content.innerHTML = `
       <div id="a4a-settings-notice" class="alert d-none" role="alert"></div>
