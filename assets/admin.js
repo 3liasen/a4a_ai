@@ -699,6 +699,13 @@
     head.appendChild(themeStyle);
   }
 
+  let customStyle = head.querySelector('style#a4a-ai-custom-style');
+  if (!customStyle) {
+    customStyle = document.createElement('style');
+    customStyle.id = 'a4a-ai-custom-style';
+    head.appendChild(customStyle);
+  }
+
   let adminLTEActivated = false;
 
   function activateAdminLTE() {
@@ -906,12 +913,14 @@
   });
 
   const STORAGE_KEY = 'a4a-ai-settings';
+  const CUSTOM_CSS_LIMIT = 4000;
   const DEFAULT_SETTINGS = Object.freeze({
     primaryColor: '#0d6efd',
     successColor: '#198754',
     dangerColor: '#dc3545',
     iconScale: 1,
-    iconOverrides: Object.freeze({})
+    iconOverrides: Object.freeze({}),
+    customCss: ''
   });
 
   function normalizeHex(value) {
@@ -1017,6 +1026,20 @@
     return sanitized;
   }
 
+  function sanitizeCustomCss(value) {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    let css = value.replace(/\r\n?/g, '\n');
+    css = css.replace(/<\/style>/gi, '');
+    css = css.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ');
+    css = css.trim();
+    if (css.length > CUSTOM_CSS_LIMIT) {
+      css = css.slice(0, CUSTOM_CSS_LIMIT);
+    }
+    return css;
+  }
+
   function loadSettings() {
     const settings = { ...DEFAULT_SETTINGS, iconOverrides: {} };
     try {
@@ -1061,6 +1084,9 @@
         if (parsed.iconOverrides) {
           settings.iconOverrides = sanitizeIconOverrides(parsed.iconOverrides);
         }
+        if (typeof parsed.customCss === 'string') {
+          settings.customCss = sanitizeCustomCss(parsed.customCss);
+        }
     }
     } catch (error) {
       if (typeof window.localStorage !== 'undefined') {
@@ -1091,6 +1117,7 @@
     const danger = normalizeHex(settings.dangerColor) || DEFAULT_SETTINGS.dangerColor;
     const iconScale = clampIconScale(settings.iconScale);
     const iconOverrides = sanitizeIconOverrides(settings.iconOverrides);
+    const customCss = sanitizeCustomCss(settings.customCss);
 
     const primaryHover = shadeColor(primary, -0.1);
     const primaryActive = shadeColor(primary, -0.2);
@@ -1174,12 +1201,15 @@
       }
     `;
 
+    customStyle.textContent = customCss;
+
     return {
       primaryColor: primary,
       successColor: success,
       dangerColor: danger,
       iconScale,
-      iconOverrides
+      iconOverrides,
+      customCss
     };
   }
 
@@ -2077,6 +2107,14 @@
                       <div class="form-text">Adjust the multiplier applied to interface icons. Current: <span id="a4a-setting-icon-label">100%</span></div>
                     </div>
                     <div>
+                      <label class="form-label" for="a4a-setting-custom-css">Custom CSS</label>
+                      <textarea class="form-control font-monospace" id="a4a-setting-custom-css" rows="6" placeholder=".card { border-radius: 16px; }"></textarea>
+                      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-1">
+                        <span class="form-text">Styles apply immediately inside the plugin admin. Avoid @import or external assets.</span>
+                        <span class="form-text small text-muted" id="a4a-setting-custom-css-count">0 / ${CUSTOM_CSS_LIMIT}</span>
+                      </div>
+                    </div>
+                    <div>
                       <div class="d-flex align-items-center justify-content-between mb-1">
                         <h3 class="h6 mb-0">Interface Icons</h3>
                       </div>
@@ -2158,6 +2196,8 @@
       settingIcon: app.querySelector('#a4a-setting-icon'),
       settingIconLabel: app.querySelector('#a4a-setting-icon-label'),
       settingsReset: app.querySelector('#a4a-settings-reset'),
+      customCss: app.querySelector('#a4a-setting-custom-css'),
+      customCssCount: app.querySelector('#a4a-setting-custom-css-count'),
       iconSettings: app.querySelector('#a4a-icon-settings'),
       iconPicker: app.querySelector('#a4a-icon-picker'),
       iconPickerTitle: app.querySelector('#a4a-icon-picker-title'),
@@ -2222,11 +2262,20 @@
       if (els.settingIconLabel) {
         els.settingIconLabel.textContent = `${Math.round(clampIconScale(state.interface.iconScale) * 100)}%`;
       }
+      if (els.customCss) {
+        const css = typeof state.interface.customCss === 'string' ? state.interface.customCss : '';
+        els.customCss.value = css;
+        if (els.customCssCount) {
+          els.customCssCount.textContent = `${css.length} / ${CUSTOM_CSS_LIMIT}`;
+        }
+      } else if (els.customCssCount) {
+        els.customCssCount.textContent = `0 / ${CUSTOM_CSS_LIMIT}`;
+      }
       renderIconSettings();
       if (els.iconPicker && !els.iconPicker.hasAttribute('hidden')) {
-      renderIconPicker();
+        renderIconPicker();
+      }
     }
-  }
 
     function formatIconLabel(key) {
       if (typeof key !== 'string' || !key) {
@@ -2607,6 +2656,25 @@
       els.settingDanger.addEventListener('input', (event) => {
         const value = normalizeHex(event.target.value) || state.interface.dangerColor;
         handleInterfaceChange({ dangerColor: value });
+      });
+    }
+    if (els.customCss) {
+      els.customCss.addEventListener('input', (event) => {
+        const element = event.target;
+        const selectionStart = typeof element.selectionStart === 'number' ? element.selectionStart : element.value.length;
+        const sanitized = sanitizeCustomCss(element.value);
+        if (sanitized !== element.value) {
+          element.value = sanitized;
+        }
+        handleInterfaceChange({ customCss: sanitized });
+        if (els.customCss) {
+          try {
+            const pos = Math.min(selectionStart, sanitized.length);
+            els.customCss.setSelectionRange(pos, pos);
+          } catch {
+            // Ignore browsers that do not support setSelectionRange on textareas.
+          }
+        }
       });
     }
     if (els.settingIcon) {
