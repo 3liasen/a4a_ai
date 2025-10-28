@@ -460,7 +460,8 @@
     .a4a-debug-log { background: #0f172a; color: #e2e8f0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; border-radius: 0.85rem; padding: 1.25rem; min-height: 320px; max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2); }
     .a4a-debug-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .a4a-debug-meta { font-size: 0.85rem; color: #6c757d; }
-    .a4a-debug-grid .card { height: 100%; }
+    .a4a-categories-grid .card,
+    .a4a-debug-grid .card { width: 100%; height: 100%; }
     .a4a-adminlte {
       display: grid;
       grid-template-columns: 240px minmax(0, 1fr);
