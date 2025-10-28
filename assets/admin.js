@@ -97,6 +97,12 @@
     .a4a-icon-picker-grid button .a4a-icon-picker-label { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: #495057; }
     .a4a-icon-picker-empty { text-align: center; padding: 2rem 1rem; color: #6c757d; }
     .a4a-icon-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .wrapper.a4a-adminlte { min-height: 100vh; }
+    .a4a-nav-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; margin-right: 0.5rem; }
+    .a4a-nav-icon .a4a-icon { font-size: 1.1rem; }
+    .nav-sidebar .nav-link.active { background-color: var(--a4a-color-primary); color: #fff; }
+    .nav-sidebar .nav-link.active .a4a-icon svg { stroke: #fff; }
+    .main-header .navbar-nav .btn { margin-left: 0.5rem; }
   `;
   root.classList.add('a4a-ai-root');
 
@@ -143,6 +149,101 @@
     adminLTEActivated = true;
   }
 
+  function renderNavItems(activeView) {
+    const entries = [
+      { key: 'urls', label: 'URL Hub', icon: 'link' },
+      { key: 'clients', label: 'Clients', icon: 'list' },
+      { key: 'categories', label: 'Categories', icon: 'sparkles' },
+      { key: 'settings', label: 'Settings', icon: 'settings' }
+    ];
+    return entries
+      .map((entry) => {
+        const isActive = entry.key === activeView;
+        return `
+          <li class="nav-item">
+            <a href="#" class="nav-link${isActive ? ' active' : ''}" data-view="${entry.key}">
+              <span class="a4a-nav-icon">${icon(entry.icon)}</span>
+              <p class="mb-0">${entry.label}</p>
+            </a>
+          </li>
+        `;
+      })
+      .join('');
+  }
+
+  function renderAdminLTEPage({ viewKey, title, subtitle = '', contentClass = '' }) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'wrapper a4a-adminlte';
+    const year = new Date().getFullYear();
+    wrapper.innerHTML = `
+      <nav class="main-header navbar navbar-expand navbar-white navbar-light border-bottom">
+        <div class="container-fluid">
+          <button class="navbar-toggler" data-widget="pushmenu" type="button" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <span class="navbar-brand fw-semibold">axs4all Intelligence</span>
+        </div>
+      </nav>
+      <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <a href="#" class="brand-link text-decoration-none">
+          <span class="brand-text fw-light">axs4all AI</span>
+        </a>
+        <div class="sidebar">
+          <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+              ${renderNavItems(viewKey)}
+            </ul>
+          </nav>
+        </div>
+      </aside>
+      <div class="content-wrapper">
+        <div class="content-header">
+          <div class="container-fluid">
+            <div class="row mb-2">
+              <div class="col-sm-6">
+                <h1 class="m-0">${title}</h1>
+                ${subtitle ? `<p class="text-muted mb-0">${subtitle}</p>` : ''}
+              </div>
+              <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                  <li class="breadcrumb-item"><a href="#" data-view="urls">Dashboard</a></li>
+                  <li class="breadcrumb-item active text-capitalize">${viewKey}</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+        <section class="content">
+          <div class="container-fluid ${contentClass}" data-content-slot></div>
+        </section>
+      </div>
+      <footer class="main-footer text-sm">
+        <strong>&copy; ${year} axs4all.</strong>
+        <div class="float-end d-none d-sm-inline">AI Crawl Manager</div>
+      </footer>
+    `;
+    root.appendChild(wrapper);
+    activateAdminLTE();
+    return {
+      wrapper,
+      content: wrapper.querySelector('[data-content-slot]'),
+      navLinks: wrapper.querySelectorAll('[data-view]')
+    };
+  }
+
+  function bindNavigation(links, onNavigate) {
+    links.forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const target = link.getAttribute('data-view');
+        if (!target || typeof onNavigate !== 'function') {
+          return;
+        }
+        onNavigate(target);
+      });
+    });
+  }
+
   const ICONS = Object.assign(Object.create(null), {
     plus: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`,
     list: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 6h9"/><path d="M4 12h9"/><path d="M4 18h9"/><polyline points="15 8 17 10 21 6"/><polyline points="15 14 17 16 21 12"/></svg>`,
@@ -160,7 +261,9 @@
     code: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 7l-4 5 4 5"/><path d="M16 7l4 5-4 5"/></svg>`,
     close: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M6 18L18 6"/></svg>`,
     copy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="9" y="9" width="10" height="12" rx="2"/><path d="M5 13V7a2 2 0 0 1 2-2h6"/></svg>`,
-    circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`
+    circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`,
+    search: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-3-3"/></svg>`,
+    settings: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
   });
 
   const ICON_KEYS = Object.freeze(Object.keys(ICONS));
@@ -181,7 +284,9 @@
     code: { label: 'Code', usage: 'Used in code view toggles.' },
     close: { label: 'Close', usage: 'Used for close buttons.' },
     copy: { label: 'Duplicate', usage: 'Used for duplicate or copy actions.' },
-    circle: { label: 'Default', usage: 'Fallback icon if no icon is found.' }
+    circle: { label: 'Default', usage: 'Fallback icon if no icon is found.' },
+    search: { label: 'Search', usage: 'Used for search inputs or filters.' },
+    settings: { label: 'Settings', usage: 'Used for configuration or preferences actions.' }
   });
 
   const STORAGE_KEY = 'a4a-ai-settings';
@@ -509,42 +614,46 @@
     (host.getAttribute('data-default-view') || config.defaultView || 'urls')
   ).toLowerCase();
 
-  if (defaultView === 'clients') {
-    initClients();
-    return;
-  }
-
-  if (defaultView === 'categories') {
-    initCategories();
-    return;
-  }
-
-  if (defaultView === 'settings') {
-    initSettings();
-    return;
-  }
+  let currentView = defaultView;
 
   function initClients() {
     const baseClientsUrl = config.clientsRestUrl ? config.clientsRestUrl.replace(/\/$/, '') : '';
     const baseUrlsUrl = config.restUrl ? config.restUrl.replace(/\/$/, '') : '';
 
+    const layout = renderAdminLTEPage({
+      viewKey: 'clients',
+      title: 'Clients',
+      subtitle: 'Manage organisations, metadata, and crawl targets.'
+    });
+    bindNavigation(layout.navLinks, loadView);
+
     if (!baseClientsUrl) {
-      host.textContent = 'Clients endpoint not available.';
+      layout.content.innerHTML = `
+        <div class="row">
+          <div class="col-12">
+            <div class="alert alert-danger" role="alert">Clients endpoint not available.</div>
+          </div>
+        </div>
+      `;
       return;
     }
 
-    const markup = `
-      <div class="bg-light min-vh-100">
-        <div class="container py-4">
+    layout.content.innerHTML = `
+      <div class="row g-4">
+        <div class="col-12">
           <div id="a4a-clients-notice" class="alert d-none" role="alert"></div>
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <h1 class="h3 mb-0">Clients</h1>
-            <div class="d-flex gap-2">
+        </div>
+        <div class="col-12">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <p class="text-muted mb-0">Select a client to manage details and orchestrate URL crawls.</p>
+            <div class="d-flex flex-wrap gap-2">
               <button class="btn btn-outline-secondary" type="button" data-action="refresh">${icon('refresh', 'me-1')}Refresh</button>
               <button class="btn btn-primary" type="button" data-action="new">${icon('plus', 'me-1')}New Client</button>
             </div>
           </div>
-          <div class="card mb-4">
+        </div>
+        <div class="col-12 col-xl-4">
+          <div class="card h-100 shadow-sm">
             <div class="card-body">
               <label class="form-label" for="a4a-client-select">Select client</label>
               <select class="form-select mb-3" id="a4a-client-select"></select>
@@ -560,25 +669,27 @@
                 </div>
                 <div>
                   <label class="form-label d-block">Categories</label>
-                  <div id="a4a-client-categories" class="vstack gap-2 border rounded p-3 bg-light-subtle"></div>
+                  <div id="a4a-client-categories" class="vstack gap-2 border rounded p-3 bg-body-secondary"></div>
                   <div class="form-text">Tick the categories this client cares about during crawls.</div>
                 </div>
-                <div class="d-flex flex-wrap gap-2">
-                  <button type="submit" class="btn btn-primary" id="a4a-client-save">${icon('save', 'me-1')}Save Client</button>
+                <div class="d-flex flex-wrap gap-2 justify-content-end">
                   <button type="button" class="btn btn-outline-secondary" id="a4a-client-reset">${icon('eraser', 'me-1')}Reset</button>
-                  <button type="button" class="btn btn-outline-danger ms-auto d-none" id="a4a-client-delete">${icon('trash', 'me-1')}Delete</button>
+                  <button type="button" class="btn btn-outline-danger d-none" id="a4a-client-delete">${icon('trash', 'me-1')}Delete</button>
+                  <button type="submit" class="btn btn-primary" id="a4a-client-save">${icon('save', 'me-1')}Save client</button>
                 </div>
               </form>
             </div>
           </div>
-          <div class="card">
+        </div>
+        <div class="col-12 col-xl-8">
+          <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h2 class="h5 mb-0">Client URLs</h2>
+              <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-client-url-new">${icon('plus', 'me-1')}New URL</button>
+            </div>
             <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="h5 mb-0">Client URLs</h2>
-                <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-client-url-new">${icon('plus', 'me-1')}New URL</button>
-              </div>
               <div class="table-responsive mb-3">
-                <table class="table table-sm align-middle mb-0">
+                <table class="table table-hover align-middle mb-0">
                   <thead class="table-light">
                     <tr>
                       <th>URL</th>
@@ -591,6 +702,12 @@
                     <tr><td colspan="4" class="text-center text-muted py-3">Select a client to view URLs.</td></tr>
                   </tbody>
                 </table>
+              </div>
+              <div class="a4a-empty d-none" id="a4a-client-urls-empty">
+                <div class="icon-circle bg-primary-subtle text-primary">${icon('sparkles')}</div>
+                <h3 class="h5">No URLs yet</h3>
+                <p class="text-muted">Create URLs for this client to orchestrate AI crawls.</p>
+                <button class="btn btn-primary" type="button" data-action="new-url">${icon('plus', 'me-1')}Add URL</button>
               </div>
               <form id="a4a-client-url-form" class="row g-3">
                 <input type="hidden" id="a4a-client-url-id" />
@@ -626,10 +743,8 @@
         </div>
       </div>
     `;
-    const app = document.createElement('div');
-    app.innerHTML = markup;
-    root.appendChild(app);
-    activateAdminLTE();
+
+    const app = layout.wrapper;
 
     const els = {
       notice: app.querySelector('#a4a-clients-notice'),
@@ -685,10 +800,11 @@
     }
 
     function setBusy(isBusy) {
-      if (!app.firstElementChild) {
+      const target = app.querySelector('.content-wrapper');
+      if (!target) {
         return;
       }
-      app.firstElementChild.classList.toggle('a4a-busy', Boolean(isBusy));
+      target.classList.toggle('a4a-busy', Boolean(isBusy));
     }
 
     function getSelectedClient() {
@@ -1249,19 +1365,28 @@
           }
         });
       }
+      const newUrlHandler = () => {
+        const client = getSelectedClient();
+        if (!client) {
+          setNotice('Select a client before adding URLs.', 'warning');
+          return;
+        }
+        resetUrlForm();
+        toggleUrlForm(false);
+        if (els.urlInput) {
+          els.urlInput.focus({ preventScroll: true });
+        }
+      };
       if (els.urlNew) {
-        els.urlNew.addEventListener('click', () => {
-          const client = getSelectedClient();
-          if (!client) {
-            setNotice('Select a client before adding URLs.', 'warning');
-            return;
-          }
-          resetUrlForm();
-          toggleUrlForm(false);
-          if (els.urlInput) {
-            els.urlInput.focus({ preventScroll: true });
-          }
-        });
+        els.urlNew.addEventListener('click', newUrlHandler);
+      }
+      layout.content.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-action="new-url"]');
+        if (!trigger) {
+          return;
+        }
+        newUrlHandler();
+      });
       }
       if (els.urlsBody) {
         els.urlsBody.addEventListener('click', handleUrlTableClick);
@@ -1279,15 +1404,16 @@
   function initSettings() {
     const settingsEndpoint = typeof config.settingsRestUrl === 'string' ? config.settingsRestUrl.replace(/\/$/, '') : '';
 
-    const markup = `
-      <div class="bg-light min-vh-100">
-        <div class="container py-4">
-          <div class="mb-4">
-            <h1 class="h3 mb-1">Settings</h1>
-            <p class="text-muted mb-0">Adjust the admin interface and configure AI provider access.</p>
-          </div>
-          <div id="a4a-settings-notice" class="alert d-none" role="alert"></div>
-          <div class="row g-4">
+    const layout = renderAdminLTEPage({
+      viewKey: 'settings',
+      title: 'Settings',
+      subtitle: 'Adjust the admin interface and configure AI provider access.'
+    });
+    bindNavigation(layout.navLinks, loadView);
+
+    layout.content.innerHTML = `
+      <div id="a4a-settings-notice" class="alert d-none" role="alert"></div>
+      <div class="row g-4">
             <div class="col-12 col-xl-6">
               <div class="card shadow-sm h-100">
                 <div class="card-header">
@@ -1383,10 +1509,7 @@
       </div>
     `;
 
-    const app = document.createElement('div');
-    app.innerHTML = markup;
-    root.appendChild(app);
-    activateAdminLTE();
+    const app = layout.wrapper;
 
     const els = {
       notice: app.querySelector('#a4a-settings-notice'),
@@ -1879,82 +2002,89 @@
   function initCategories() {
     const baseCategoriesUrl = config.categoriesRestUrl ? config.categoriesRestUrl.replace(/\/$/, '') : '';
 
+    const layout = renderAdminLTEPage({
+      viewKey: 'categories',
+      title: 'Categories',
+      subtitle: 'Define and organise reusable metadata buckets for crawl results.'
+    });
+    bindNavigation(layout.navLinks, loadView);
+
     if (!baseCategoriesUrl) {
-      host.textContent = 'Categories endpoint not available.';
+      layout.content.innerHTML = `
+        <div class="row">
+          <div class="col-12">
+            <div class="alert alert-danger" role="alert">Categories endpoint not available.</div>
+          </div>
+        </div>
+      `;
       return;
     }
 
-    const markup = `
-      <div class="bg-light min-vh-100">
-        <div class="container py-4">
+    layout.content.innerHTML = `
+      <div class="row g-4">
+        <div class="col-12">
           <div id="a4a-categories-notice" class="alert d-none" role="alert"></div>
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <h1 class="h3 mb-0">Categories</h1>
-            <button class="btn btn-primary" type="button" data-action="new">${icon('plus', 'me-1')}New Category</button>
+        </div>
+        <div class="col-lg-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h2 class="h6 mb-0">Category Library</h2>
+              <button class="btn btn-outline-primary btn-sm" type="button" data-action="new">${icon('plus', 'me-1')}New Category</button>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Name</th>
+                      <th style="width: 120px;">Options</th>
+                      <th class="text-end" style="width: 110px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="a4a-category-table">
+                    <tr><td colspan="3" class="text-center text-muted py-3">Loading categories...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-          <div class="row g-4">
-            <div class="col-lg-6">
-              <div class="card shadow-sm h-100">
-                <div class="card-header">
-                  <h2 class="h6 mb-0">Category Library</h2>
-                </div>
-                <div class="card-body p-0">
-                  <table class="table table-sm align-middle mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th>Name</th>
-                        <th style="width: 120px;">Options</th>
-                        <th class="text-end" style="width: 110px;">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody id="a4a-category-table">
-                      <tr><td colspan="3" class="text-center text-muted py-3">Loading categories...</td></tr>
-                    </tbody>
-                  </table>
-                </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <h2 class="h6 mb-0" id="a4a-category-form-title">New Category</h2>
+                <p class="text-muted small mb-0">Options can be reordered later.</p>
               </div>
+              <span class="badge text-bg-primary" id="a4a-category-mode">New</span>
             </div>
-            <div class="col-lg-6">
-              <div class="card shadow-sm">
-              <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="card-body">
+              <form id="a4a-category-form" class="vstack gap-3">
+                <input type="hidden" id="a4a-category-id" />
                 <div>
-                  <h2 class="h6 mb-0" id="a4a-category-form-title">New Category</h2>
-                  <p class="text-muted small mb-0">Options can be reordered later.</p>
+                  <label class="form-label" for="a4a-category-name">Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="a4a-category-name" placeholder="Category name" required />
                 </div>
-                <span class="badge text-bg-primary" id="a4a-category-mode">New</span>
-              </div>
-              <div class="card-body">
-                <form id="a4a-category-form" class="vstack gap-3">
-                  <input type="hidden" id="a4a-category-id" />
-                  <div>
-                    <label class="form-label" for="a4a-category-name">Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="a4a-category-name" placeholder="Category name" required />
+                <div>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label mb-0" for="a4a-category-options">Options</label>
+                    <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-category-option-add">${icon('plus', 'me-1')}Add option</button>
                   </div>
-                  <div>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                      <label class="form-label mb-0" for="a4a-category-options">Options</label>
-                      <button class="btn btn-outline-primary btn-sm" type="button" id="a4a-category-option-add">${icon('plus', 'me-1')}Add option</button>
-                    </div>
-                    <div id="a4a-category-options" class="vstack gap-2"></div>
-                  </div>
-                  <div class="d-flex flex-wrap gap-2">
-                    <button type="submit" class="btn btn-primary" id="a4a-category-save">${icon('save', 'me-1')}Save Category</button>
-                    <button type="button" class="btn btn-outline-secondary" id="a4a-category-reset">${icon('eraser', 'me-1')}Reset</button>
-                    <button type="button" class="btn btn-outline-danger ms-auto d-none" id="a4a-category-delete">${icon('trash', 'me-1')}Delete</button>
-                  </div>
-                </form>
-              </div>
-            </div>
+                  <div id="a4a-category-options" class="vstack gap-2"></div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="submit" class="btn btn-primary" id="a4a-category-save">${icon('save', 'me-1')}Save Category</button>
+                  <button type="button" class="btn btn-outline-secondary" id="a4a-category-reset">${icon('eraser', 'me-1')}Reset</button>
+                  <button type="button" class="btn btn-outline-danger ms-auto d-none" id="a4a-category-delete">${icon('trash', 'me-1')}Delete</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
       </div>
     `;
 
-    const app = document.createElement('div');
-    app.innerHTML = markup;
-    root.appendChild(app);
-    activateAdminLTE();
+    const app = layout.wrapper;
 
     const els = {
       notice: app.querySelector('#a4a-categories-notice'),
@@ -1994,10 +2124,11 @@
     }
 
     function setBusy(isBusy) {
-      if (!app.firstElementChild) {
+      const target = app.querySelector('.content-wrapper');
+      if (!target) {
         return;
       }
-      app.firstElementChild.classList.toggle('a4a-busy', Boolean(isBusy));
+      target.classList.toggle('a4a-busy', Boolean(isBusy));
     }
 
     function renderOptions(values) {
@@ -2267,31 +2398,28 @@
     fetchCategories();
   }
 
-  const markup = `
-    <div class="bg-light min-vh-100">
-      <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
-        <div class="container-fluid">
-          <a class="navbar-brand fw-semibold" href="#">axs4all Intelligence</a>
-          <div class="ms-auto d-flex align-items-center gap-3">
-            <span class="text-muted small" id="a4a-clock">--:--</span>
-            <button class="btn btn-primary btn-sm" data-action="new-url">
-              ${icon('plus', 'me-1')}New Target
-            </button>
-          </div>
-        </div>
-      </nav>
+  function initUrls() {
+    const layout = renderAdminLTEPage({
+      viewKey: 'urls',
+      title: 'URL Intelligence Hub',
+      subtitle: 'Curate crawl targets, coordinate schedules, and capture XML payloads ready for the AI pipeline.'
+    });
+    bindNavigation(layout.navLinks, loadView);
 
-      <main class="container-fluid py-4">
-        <div class="row g-4">
+    const markup = `
+      <div class="row g-4">
           <div class="col-12">
             <div id="a4a-notice" class="alert d-none" role="alert"></div>
           </div>
 
-          <div class="col-12">
-            <div class="border-bottom pb-3 mb-3">
-              <h1 class="h3 mb-1">URL Intelligence Hub</h1>
-              <p class="text-muted mb-0">Curate crawl targets, coordinate schedules, and capture XML payloads ready for the AI pipeline.</p>
+          <div class="col-12 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <span class="badge text-bg-secondary">Live</span>
+              <span>Local time <span id="a4a-clock">--:--</span></span>
             </div>
+            <button class="btn btn-primary btn-sm" data-action="new-url">
+              ${icon('plus', 'me-1')}New Target
+            </button>
           </div>
 
           <div class="col-12 col-sm-6 col-xl-3">
@@ -2489,14 +2617,11 @@
           </div>
 
         </div>
-      </main>
-    </div>
+      </div>
   `;
 
-  const app = document.createElement('div');
-  app.innerHTML = markup;
-  root.appendChild(app);
-  activateAdminLTE();
+    layout.content.innerHTML = markup;
+    const app = layout.wrapper;
 
   const state = {
     items: [],
@@ -3257,9 +3382,37 @@
     });
   }
 
-  resetForm();
-  wireEvents();
-  fetchClientsForSelect();
-  fetchItems();
+    resetForm();
+    wireEvents();
+    fetchClientsForSelect();
+    fetchItems();
+  }
+
+  function loadView(view) {
+    const candidate = typeof view === 'string' ? view.toLowerCase() : 'urls';
+    const validViews = ['urls', 'clients', 'categories', 'settings'];
+    const nextView = validViews.includes(candidate) ? candidate : 'urls';
+    if (currentView === nextView && root.children.length) {
+      return;
+    }
+    currentView = nextView;
+    root.innerHTML = '';
+    switch (currentView) {
+      case 'clients':
+        initClients();
+        break;
+      case 'categories':
+        initCategories();
+        break;
+      case 'settings':
+        initSettings();
+        break;
+      default:
+        initUrls();
+        break;
+    }
+  }
+
+  loadView(currentView);
 
 })();
