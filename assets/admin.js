@@ -650,7 +650,7 @@
       }
       const cleaned =
         typeof stored === 'string'
-          ? stored.replace(/[\uFEFF\u200B\u2060]+/gu, '')
+          ? stored.replace(/[\uFEFF\u200B\u200C\u200D\u2060]+/gu, '')
           : stored;
       if (!cleaned) {
         return settings;
