@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if ( ! defined('A4A_AI_PLUGIN_FILE') ) {
     // Ensure no output is sent before this point to prevent "headers already sent" errors.
     // This line should ideally be the very first executable line in the plugin file.
