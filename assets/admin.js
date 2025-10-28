@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const host = document.getElementById('a4a-ai-root');
   if (!host) {
     return;
@@ -45,7 +45,7 @@
                 <span id="a4a-debug-size" class="ms-2"></span>
                 <span id="a4a-debug-updated" class="ms-2"></span>
               </div>
-              <pre class="a4a-debug-log" id="a4a-debug-log">Loading log entriesâ€¦</pre>
+              <pre class="a4a-debug-log" id="a4a-debug-log">Loading log entries…</pre>
             </div>
           </div>
           <div class="card shadow-sm h-100">
@@ -461,7 +461,7 @@
     .a4a-debug-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .a4a-debug-meta { font-size: 0.85rem; color: #6c757d; }
     .a4a-categories-grid .card,
-    .a4a-debug-grid .card { width: 100%; height: 100%; }
+    .a4a-debug-grid .card { width: 100%; min-width: 100%; height: 100%; }
     .a4a-adminlte {
       display: grid;
       grid-template-columns: 240px minmax(0, 1fr);
@@ -969,6 +969,7 @@
         if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
           cleaned = cleaned.slice(1, -1).trim();
         }
+        cleaned = cleaned.replace(/\\'/g, "'").replace(/\\"/g, '"');
       }
       if (!cleaned) {
         if (typeof window.localStorage !== 'undefined') {
@@ -3934,3 +3935,8 @@
   loadView(currentView);
 
 })();
+
+
+
+
+
