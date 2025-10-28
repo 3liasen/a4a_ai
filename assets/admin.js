@@ -446,16 +446,73 @@
     .a4a-icon-picker-grid button .a4a-icon-picker-label { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem; color: #495057; }
     .a4a-icon-picker-empty { text-align: center; padding: 2rem 1rem; color: #6c757d; }
     .a4a-icon-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-    .a4a-section { display: flex; flex-direction: column; gap: 1.5rem; }
-    .a4a-categories-grid { display: grid; grid-template-columns: minmax(0, 70%) minmax(0, 25%); gap: 5%; align-items: start; }
+    .a4a-section { display: flex; flex-direction: column; gap: 2rem; }
+    .a4a-page-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1.75rem; }
+    .a4a-page-title { font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.35rem; }
+    .a4a-page-lead { max-width: 720px; font-size: 1rem; color: #475569; }
+    .a4a-page-tag { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(15,23,42,0.6); display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; }
+    .a4a-header-actions { display: flex; align-items: center; gap: 1rem; }
+    .a4a-header-actions .btn-lg { padding: 0.85rem 1.4rem; border-radius: 0.95rem; font-weight: 600; box-shadow: 0 12px 30px rgba(13,110,253,0.25); }
+    .a4a-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.5rem; }
+    .a4a-stat-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.4rem 1.6rem; border-radius: 1.3rem; background: linear-gradient(150deg, #ffffff 0%, #f4f7ff 100%); border: none; box-shadow: 0 22px 44px rgba(15,23,42,0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .a4a-stat-card:hover { transform: translateY(-4px); box-shadow: 0 28px 55px rgba(15,23,42,0.12); }
+    .a4a-stat-card__icon { width: 3rem; height: 3rem; border-radius: 0.95rem; display: inline-flex; align-items: center; justify-content: center; font-size: 1.35rem; background: rgba(13,110,253,0.12); color: #0d6efd; }
+    .a4a-stat-card__label { display: block; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(15,23,42,0.55); font-weight: 600; }
+    .a4a-stat-card__value { display: block; font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; color: #0f172a; }
+    .a4a-stat-card--green .a4a-stat-card__icon { background: rgba(25,135,84,0.14); color: #198754; }
+    .a4a-stat-card--amber .a4a-stat-card__icon { background: rgba(255,193,7,0.18); color: #f59f0b; }
+    .a4a-stat-card--cyan .a4a-stat-card__icon { background: rgba(13,202,240,0.18); color: #0dcaf0; }
+    .a4a-content-grid { display: grid; grid-template-columns: minmax(0, 60%) minmax(0, 38%); gap: 2rem; align-items: start; }
+    .a4a-content-grid__aside { display: flex; flex-direction: column; gap: 1.75rem; }
+    .a4a-two-column { display: grid; grid-template-columns: minmax(0, 48%) minmax(0, 48%); gap: 2rem; align-items: start; }
+    @media (max-width: 1280px) {
+      .a4a-content-grid,
+      .a4a-two-column { grid-template-columns: 1fr; }
+      .a4a-content-grid__aside { flex-direction: column; }
+    }
+    .a4a-card { border: none; border-radius: 1.25rem; background: #ffffff; box-shadow: 0 16px 40px rgba(15,23,42,0.08); }
+    .a4a-card-header { padding: 1.45rem 1.6rem; border-bottom: 1px solid rgba(148,163,184,0.2); display: flex; align-items: flex-start; justify-content: space-between; gap: 1.1rem; flex-wrap: wrap; }
+    .a4a-card-body { padding: 1.5rem 1.6rem; }
+    .a4a-card-footer { padding: 1.25rem 1.6rem; border-top: 1px solid rgba(148,163,184,0.2); background: rgba(248,249,252,0.65); display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: flex-end; }
+    .a4a-card-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .a4a-card-subtitle { font-size: 0.9rem; color: #6c757d; margin-bottom: 0; }
+    .a4a-table-card .table { margin: 0; font-size: 0.95rem; }
+    .a4a-table-card .table thead th { border-bottom: 1px solid rgba(148,163,184,0.25); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.08em; color: rgba(15,23,42,0.6); background: transparent; }
+    .a4a-table-card .table tbody tr { transition: background 0.2s ease, transform 0.2s ease; }
+    .a4a-table-card .table tbody tr:hover { background: rgba(13,110,253,0.06); }
+    .a4a-table-card .table tbody tr.table-active { background: rgba(13,110,253,0.12); box-shadow: inset 3px 0 0 #0d6efd; }
+    .a4a-table-card .btn-group .btn { border-radius: 0.65rem; }
+    .a4a-scroll { max-height: 420px; overflow: auto; }
+    .a4a-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; background: rgba(15,23,42,0.05); color: #0f172a; }
+    .a4a-pill svg { width: 1rem; height: 1rem; }
+    .a4a-pill--success { background: rgba(25,135,84,0.12); color: #198754; border-color: rgba(25,135,84,0.22); }
+    .a4a-pill--warning { background: rgba(255,193,7,0.18); color: #b7791f; border-color: rgba(255,193,7,0.32); }
+    .a4a-pill--muted { background: rgba(148,163,184,0.16); color: #475569; border-color: rgba(148,163,184,0.22); }
+    .a4a-detail-list { display: flex; flex-direction: column; gap: 1.25rem; }
+    .a4a-detail-label { display: block; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: rgba(15,23,42,0.55); margin-bottom: 0.25rem; }
+    .a4a-detail-value { font-weight: 600; color: #0f172a; }
+    .a4a-detail-note { color: #6c757d; font-size: 0.9rem; }
+    .a4a-code-block { background: rgba(15,23,42,0.05); border-radius: 0.85rem; padding: 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; white-space: pre-wrap; word-break: break-word; color: #0f172a; }
+    .a4a-timeline { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem; }
+    .a4a-timeline-item { display: flex; justify-content: space-between; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid rgba(148,163,184,0.18); }
+    .a4a-timeline-item:last-child { border-bottom: none; }
+    .a4a-timeline-info { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+    .a4a-timeline-meta { min-width: 120px; }
+    .a4a-form-help { font-size: 0.85rem; color: #6c757d; }
+    .a4a-card-body .form-label { font-weight: 600; color: #0f172a; }
+    .a4a-card-body .form-control,
+    .a4a-card-body .form-select { border-radius: 0.85rem; padding: 0.65rem 0.85rem; border-color: rgba(148,163,184,0.35); transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .a4a-card-body .form-control:focus,
+    .a4a-card-body .form-select:focus { border-color: rgba(13,110,253,0.65); box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.12); }
+    .a4a-categories-grid { display: grid; grid-template-columns: minmax(0, 70%) minmax(0, 28%); gap: 2rem; align-items: start; }
     .a4a-categories-grid__library,
     .a4a-categories-grid__form { min-width: 0; }
     @media (max-width: 1200px) {
-      .a4a-categories-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+      .a4a-categories-grid { grid-template-columns: 1fr; gap: 1.75rem; }
     }
-    .a4a-debug-grid { display: grid; grid-template-columns: minmax(0, 70%) minmax(0, 25%); gap: 5%; align-items: start; }
+    .a4a-debug-grid { display: grid; grid-template-columns: minmax(0, 70%) minmax(0, 28%); gap: 2rem; align-items: start; }
     @media (max-width: 1280px) {
-      .a4a-debug-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+      .a4a-debug-grid { grid-template-columns: 1fr; gap: 1.75rem; }
     }
     .a4a-debug-log { background: #0f172a; color: #e2e8f0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; border-radius: 0.85rem; padding: 1.25rem; min-height: 320px; max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2); }
     .a4a-debug-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -520,6 +577,12 @@
     .a4a-adminlte .content-wrapper {
       padding: 2rem 2.25rem;
       background: #f4f6f9;
+    }
+    .a4a-adminlte .card {
+      width: 100%;
+      min-width: 100%;
+      display: flex;
+      flex-direction: column;
     }
     .a4a-adminlte .content-header {
       padding-bottom: 0.25rem;
@@ -3285,7 +3348,11 @@
 
   function renderScheduleBadge(schedule) {
     const meta = getScheduleDisplayMeta(schedule);
-    return `<span class="${meta.badgeClass}">${icon(meta.icon)}<span>${escapeHtml(meta.text)}</span></span>`;
+    const pillClass =
+      meta.type === 'scheduled'
+        ? 'a4a-pill a4a-pill--success'
+        : 'a4a-pill a4a-pill--warning';
+    return `<span class="${pillClass}">${icon(meta.icon)}<span>${escapeHtml(meta.text)}</span></span>`;
   }
 
   function summarize(value, length = 80) {
@@ -3522,46 +3589,52 @@
     const runMeta = item.run_requested_gmt ? formatModified(item.run_requested_gmt) : null;
 
     els.detailBody.innerHTML = `
-      <div class="mb-3">
-        <div class="text-muted text-uppercase small fw-semibold mb-1">Target URL</div>
-        <a href="${escapeHtml(item.url)}" class="text-decoration-none" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a>
-      </div>
-      <div class="mb-3">
-        <div class="text-muted text-uppercase small fw-semibold mb-1">Client</div>
-        ${clientName ? `<span class="badge text-bg-light text-dark">${escapeHtml(clientName)}</span>` : '<span class="text-muted small">Unassigned</span>'}
-      </div>
-      <div class="mb-3">
-        <div class="text-muted text-uppercase small fw-semibold mb-1">Cadence</div>
-        ${scheduleBadge}
-      </div>
-      <div class="mb-3">
-        <div class="text-muted text-uppercase small fw-semibold mb-1">Last update</div>
-        <div class="small fw-semibold">${escapeHtml(times.relative)}</div>
-        <div class="text-muted small">${escapeHtml(times.absolute)}</div>
-      </div>
-      <div class="mb-3">
-        <div class="text-muted text-uppercase small fw-semibold mb-1">Last run request</div>
-        ${
-          runMeta
-            ? `<div class="small fw-semibold">${escapeHtml(runMeta.relative)}</div><div class="text-muted small">${escapeHtml(runMeta.absolute)}</div>`
-            : '<div class="text-muted small">No ad-hoc run requested.</div>'
-        }
-      </div>
-      <div class="mb-3">
-        <div class="text-muted text-uppercase small fw-semibold mb-1">Description</div>
-        <p class="mb-0">${escapeHtml(item.description || 'No description yet. Add notes for collaborators.')}</p>
-      </div>
-      <div class="mb-3">
-        <div class="text-muted text-uppercase small fw-semibold mb-1">AI Prompt</div>
-        ${
-          promptText
-            ? `<pre class="bg-light border rounded small p-2 text-break mb-0" style="white-space: pre-wrap;">${escapeHtml(promptText)}</pre>`
-            : '<div class="text-muted small">This target does not have a prompt yet.</div>'
-        }
-      </div>
-      <div>
-        <div class="text-muted text-uppercase small fw-semibold mb-1">Returned XML</div>
-        <div class="a4a-xml-preview"><code>${xmlContent}</code></div>
+      <div class="a4a-detail-list">
+        <div>
+          <span class="a4a-detail-label">Target URL</span>
+          <a href="${escapeHtml(item.url)}" class="a4a-detail-value text-decoration-none text-break" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a>
+        </div>
+        <div>
+          <span class="a4a-detail-label">Client</span>
+          ${
+            clientName
+              ? `<span class="a4a-pill a4a-pill--muted">${escapeHtml(clientName)}</span>`
+              : '<span class="a4a-detail-note">Unassigned</span>'
+          }
+        </div>
+        <div>
+          <span class="a4a-detail-label">Cadence</span>
+          ${scheduleBadge}
+        </div>
+        <div>
+          <span class="a4a-detail-label">Last update</span>
+          <div class="a4a-detail-value">${escapeHtml(times.relative)}</div>
+          <div class="a4a-detail-note">${escapeHtml(times.absolute)}</div>
+        </div>
+        <div>
+          <span class="a4a-detail-label">Last run request</span>
+          ${
+            runMeta
+              ? `<div class="a4a-detail-value">${escapeHtml(runMeta.relative)}</div><div class="a4a-detail-note">${escapeHtml(runMeta.absolute)}</div>`
+              : '<div class="a4a-detail-note">No ad-hoc run requested.</div>'
+          }
+        </div>
+        <div>
+          <span class="a4a-detail-label">Description</span>
+          <p class="a4a-detail-note mb-0">${escapeHtml(item.description || 'Add notes to help collaborators understand this target.')}</p>
+        </div>
+        <div>
+          <span class="a4a-detail-label">AI Prompt</span>
+          ${
+            promptText
+              ? `<pre class="a4a-code-block mb-0">${escapeHtml(promptText)}</pre>`
+              : '<div class="a4a-detail-note">This target does not have a prompt yet.</div>'
+          }
+        </div>
+        <div>
+          <span class="a4a-detail-label">Returned XML</span>
+          <div class="a4a-xml-preview"><code>${xmlContent}</code></div>
+        </div>
       </div>
     `;
 
@@ -3588,16 +3661,17 @@
         const times = formatModified(item.modified_gmt);
         const meta = getScheduleDisplayMeta(item.schedule);
         return `
-        <li class="list-group-item">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="fw-semibold ${meta.textClass} text-break">${escapeHtml(meta.text)}</div>
-              <div class="text-muted small">${escapeHtml(item.url)}</div>
+          <li class="a4a-timeline-item">
+            <div class="a4a-timeline-info">
+              <span class="a4a-detail-label">${escapeHtml(meta.text)}</span>
+              <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" class="fw-semibold text-decoration-none text-break">${escapeHtml(item.url)}</a>
             </div>
-            <span class="badge bg-light text-muted">${escapeHtml(times.relative)}</span>
-          </div>
-        </li>
-      `;
+            <div class="a4a-timeline-meta text-end">
+              <div class="a4a-detail-value">${escapeHtml(times.relative)}</div>
+              <div class="a4a-detail-note">${escapeHtml(times.absolute)}</div>
+            </div>
+          </li>
+        `;
       })
       .join('');
     els.timelineList.innerHTML = itemsHtml;
