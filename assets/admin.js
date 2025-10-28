@@ -1399,7 +1399,6 @@
         }
         newUrlHandler();
       });
-      }
       if (els.urlsBody) {
         els.urlsBody.addEventListener('click', handleUrlTableClick);
       }
