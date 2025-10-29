@@ -17,6 +17,7 @@
 /wp-*.php
 /xmlrpc.php
 CHANGES.txt
+INSTRUCTIONS.txt
 
 # Configuration
 wp-config.php
